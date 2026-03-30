@@ -286,7 +286,7 @@ app.post('/api/intake', async (req, res) => {
 
     let apnId = location.existing_apn_id;
     if (!apnId) {
-      const propResult = await client.query(`INSERT INTO property (active_flag) VALUES (TRUE) RETURNING property_id`);
+      const propResult = await client.query(`INSERT INTO property DEFAULT VALUES RETURNING property_id`);
       const apnResult = await client.query(`
         INSERT INTO apn (property_id,apn_number,county_id,gsa_zone,mailing_address,region_assignment_method)
         VALUES ($1,$2,$3,$4,$5,'manual_override') RETURNING apn_id
