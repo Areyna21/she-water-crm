@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Quality Program — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1117;--surface:#181c27;--border:#252a38;--text:#e2e8f0;--muted:#64748b;--accent:#3b82f6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--purple:#a78bfa;--cyan:#22d3ee;--wq:#f59e0b;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:52px;position:sticky;top:0;z-index:100;}
+  .nav-brand{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cyan);}
+  .nav-back{color:var(--muted);font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit;padding:6px 10px;border-radius:6px;transition:all 0.15s;}
+  .nav-back:hover{color:var(--text);background:var(--border);}
+  .nav-prog{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+  .prog-dot{width:10px;height:10px;border-radius:50%;background:var(--wq);}
+  .nav-spacer{flex:1;}
+  .nav-stats{display:flex;gap:20px;font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .nav-stat{color:var(--muted);}
+  .nav-stat span{color:var(--text);font-weight:600;}
+  .container{max-width:1400px;margin:0 auto;padding:24px;}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);}
+  .tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--wq);border-bottom-color:var(--wq);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+  .stat-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;}
+  .stat-value.yellow{color:var(--wq);}
+  .stat-value.red{color:var(--red);}
+  .stat-value.green{color:var(--green);}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+  .card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .card-title{font-size:13px;font-weight:600;}
+  .card-body{padding:16px;}
+  .btn{padding:8px 14px;border-radius:7px;border:none;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .btn-primary{background:var(--wq);color:#000;}
+  .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--border);}
+  .btn-red{background:var(--red);color:white;}
+  .btn-sm{padding:4px 10px;font-size:11px;}
+  .input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s;}
+  .input:focus{border-color:var(--wq);}
+  .input::placeholder{color:var(--muted);}
+  select.input{cursor:pointer;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface);}
+  td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:rgba(255,255,255,0.02);}
+  .pid-cell{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+  .pill-active{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-exceeded{background:rgba(239,68,68,0.15);color:var(--red);}
+  .pill-pass{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-fail{background:rgba(239,68,68,0.15);color:var(--red);}
+  .pill-POE{background:rgba(245,158,11,0.15);color:var(--wq);}
+  .pill-POU{background:rgba(167,139,250,0.15);color:var(--purple);}
+  .pill-Well{background:rgba(34,211,238,0.15);color:var(--cyan);}
+  .pill-inactive{background:rgba(100,116,139,0.2);color:var(--muted);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+  .loading{text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .mcl-exceeded{color:var(--red);font-weight:600;}
+  .mcl-pass{color:var(--green);}
+  .contaminant-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+  .contaminant-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;}
+  .contaminant-name{font-size:12px;font-weight:600;margin-bottom:4px;}
+  .contaminant-value{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;margin-bottom:2px;}
+  .contaminant-mcl{font-size:11px;color:var(--muted);}
+  .mcl-bar-track{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+  .mcl-bar-fill{height:100%;border-radius:2px;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="window.location.href='/'">← Dashboard</button>
+  <div class="nav-prog"><div class="prog-dot"></div>Water Quality Program</div>
+  <div class="nav-spacer"></div>
+  <div class="nav-stats">
+    <div class="nav-stat">Active: <span id="nav-active">—</span></div>
+    <div class="nav-stat">Exceeding MCL: <span id="nav-mcl" style="color:var(--red);">—</span></div>
+    <div class="nav-stat">Pending Results: <span id="nav-pending">—</span></div>
+  </div>
+</nav>
+<div class="container">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Active Participants</div><div class="stat-value yellow" id="s-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Sample Points</div><div class="stat-value" id="s-points">—</div></div>
+    <div class="stat-card"><div class="stat-label">Exceeding MCL</div><div class="stat-value red" id="s-exceeded">—</div></div>
+    <div class="stat-card"><div class="stat-label">POE Installed</div><div class="stat-value" id="s-poe">—</div></div>
+    <div class="stat-card"><div class="stat-label">POU Installed</div><div class="stat-value" id="s-pou">—</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Results</div><div class="stat-value yellow" id="s-pending">—</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('participants',this)">👥 Participants</button>
+    <button class="tab" onclick="showTab('results',this)">🧪 Lab Results</button>
+    <button class="tab" onclick="showTab('contaminants',this)">⚗️ Contaminants</button>
+    <button class="tab" onclick="showTab('equipment',this)">🔧 Equipment</button>
+    <button class="tab" onclick="showTab('labs',this)">🏢 Labs</button>
+  </div>
+
+  <!-- PARTICIPANTS -->
+  <div class="tab-panel active" id="tab-participants">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active WQ Participants</div>
+        <div class="filter-row">
+          <input class="input" id="p-search" placeholder="Search name, PID, APN..." oninput="filterParticipants()" style="width:200px;" />
+          <select class="input" id="p-county" onchange="filterParticipants()">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option><option>Kern</option><option>Madera</option><option>Merced</option>
+          </select>
+          <select class="input" id="p-point-type" onchange="filterParticipants()">
+            <option value="">All Point Types</option>
+            <option value="POE">POE</option><option value="POU">POU</option><option value="Well">Well</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap" id="participant-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- LAB RESULTS -->
+  <div class="tab-panel" id="tab-results">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Lab Results</div>
+        <div class="filter-row">
+          <select class="input" id="r-contaminant" onchange="loadResults()">
+            <option value="">All Contaminants</option>
+            <option>Arsenic</option><option>Nitrate</option><option>Hexavalent Chromium</option>
+            <option>Uranium</option><option>Lead</option><option>1,2,3-TCP</option><option>DBCP</option>
+          </select>
+          <select class="input" id="r-status" onchange="loadResults()">
+            <option value="">All Results</option>
+            <option value="true">Exceeds MCL</option>
+            <option value="false">Passes MCL</option>
+          </select>
+          <select class="input" id="r-county" onchange="loadResults()">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option><option>Kern</option>
+          </select>
+        </div>
+      </div>
+      <div id="results-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- CONTAMINANTS -->
+  <div class="tab-panel" id="tab-contaminants">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Contaminant Overview — Most Recent Results</div></div>
+      <div class="card-body" id="contaminant-grid"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">California MCL Reference</div></div>
+      <div class="card-body" style="padding:0;">
+        <table>
+          <thead><tr><th>Contaminant</th><th>MCL</th><th>Unit</th><th>Effective</th><th>Health Effect</th></tr></thead>
+          <tbody>
+            <tr><td>Arsenic</td><td class="mono">10</td><td>ug/L</td><td>2006</td><td>Cancer, skin effects</td></tr>
+            <tr><td>Nitrate</td><td class="mono">10</td><td>mg/L</td><td>—</td><td>Blue baby syndrome</td></tr>
+            <tr><td>Hexavalent Chromium</td><td class="mono">10</td><td>ug/L</td><td>Oct 2024</td><td>Cancer</td></tr>
+            <tr><td>Uranium</td><td class="mono">20</td><td>ug/L</td><td>2004</td><td>Kidney damage</td></tr>
+            <tr><td>Lead</td><td class="mono">15</td><td>ug/L</td><td>—</td><td>Neurological effects</td></tr>
+            <tr><td>1,2,3-TCP</td><td class="mono">0.005</td><td>ug/L</td><td>2018</td><td>Cancer</td></tr>
+            <tr><td>DBCP</td><td class="mono">0.2</td><td>ug/L</td><td>—</td><td>Cancer, reproductive</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT -->
+  <div class="tab-panel" id="tab-equipment">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Installed Equipment</div></div>
+        <div id="equipment-table"><div class="loading">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Upcoming Service</div></div>
+        <div class="card-body" id="service-due"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LABS -->
+  <div class="tab-panel" id="tab-labs">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Lab Performance</div></div>
+      <div id="lab-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  let allParticipants = [];
+
+  async function init() {
+    await Promise.all([loadStats(), loadParticipants(), loadResults(), loadEquipment(), loadLabs(), loadContaminants()]);
+  }
+
+  function showTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/wq/stats`);
+      const d = await res.json();
+      document.getElementById('s-active').textContent   = d.active || 0;
+      document.getElementById('s-points').textContent   = d.sample_points || 0;
+      document.getElementById('s-exceeded').textContent = d.exceeded || 0;
+      document.getElementById('s-poe').textContent      = d.poe || 0;
+      document.getElementById('s-pou').textContent      = d.pou || 0;
+      document.getElementById('s-pending').textContent  = d.pending || 0;
+      document.getElementById('nav-active').textContent = d.active || 0;
+      document.getElementById('nav-mcl').textContent    = d.exceeded || 0;
+      document.getElementById('nav-pending').textContent= d.pending || 0;
+    } catch(e) {}
+  }
+
+  async function loadParticipants() {
+    try {
+      const res = await fetch(`${API}/api/wq/participants`);
+      allParticipants = await res.json();
+      renderParticipants(allParticipants);
+    } catch(e) { document.getElementById('participant-table').innerHTML = '<div class="empty">Error</div>'; }
+  }
+
+  function filterParticipants() {
+    const q = document.getElementById('p-search').value.toLowerCase();
+    const county = document.getElementById('p-county').value;
+    const type = document.getElementById('p-point-type').value;
+    const f = allParticipants.filter(p =>
+      (!q || p.pid?.toLowerCase().includes(q) || p.last_name?.toLowerCase().includes(q)) &&
+      (!county || p.county_name === county) &&
+      (!type || p.point_type_name === type)
+    );
+    renderParticipants(f);
+  }
+
+  function renderParticipants(data) {
+    const wrap = document.getElementById('participant-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No participants found</div>'; return; }
+    wrap.innerHTML = `<table>
+      <thead><tr><th>PID</th><th>Name</th><th>County</th><th>APN</th><th>Point Type</th><th>Contaminant</th><th>Value</th><th>MCL</th><th>Status</th><th>Equipment</th></tr></thead>
+      <tbody>${data.map(p => {
+        const exceeds = p.exceeds_mcl_flag;
+        return `<tr class="clickable">
+          <td class="pid-cell">${p.pid}</td>
+          <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div></td>
+          <td style="font-size:12px;">${p.county_name||'—'}</td>
+          <td class="mono">${p.apn_number||'—'}</td>
+          <td><span class="pill pill-${p.point_type_name}">${p.point_type_name||'—'}</span></td>
+          <td style="font-size:12px;">${p.contaminant||'—'}</td>
+          <td class="mono ${exceeds ? 'mcl-exceeded' : 'mcl-pass'}">${p.value != null ? p.value + ' ' + (p.unit||'') : '—'}</td>
+          <td class="mono" style="color:var(--muted);">${p.mcl_value != null ? p.mcl_value + ' ' + (p.unit||'') : '—'}</td>
+          <td><span class="pill ${exceeds ? 'pill-exceeded' : 'pill-pass'}">${exceeds ? '⚠ Exceeds MCL' : '✓ Passes'}</span></td>
+          <td style="font-size:12px;">${p.equipment_type || '—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  async function loadResults() {
+    try {
+      const contaminant = document.getElementById('r-contaminant').value;
+      const status = document.getElementById('r-status').value;
+      const county = document.getElementById('r-county').value;
+      const params = new URLSearchParams({ contaminant, exceeds: status, county });
+      const res = await fetch(`${API}/api/wq/results?${params}`);
+      const data = await res.json();
+      const wrap = document.getElementById('results-table');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No results found</div>'; return; }
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Sample Date</th><th>PID</th><th>Name</th><th>County</th><th>Point Type</th><th>Contaminant</th><th>Value</th><th>MCL</th><th>Result</th><th>Lab</th></tr></thead>
+        <tbody>${data.map(r => `<tr>
+          <td class="mono">${formatDate(r.sample_date)}</td>
+          <td class="pid-cell">${r.pid||'—'}</td>
+          <td style="font-size:13px;">${r.last_name||'—'}, ${r.first_name||''}</td>
+          <td style="font-size:12px;">${r.county_name||'—'}</td>
+          <td><span class="pill pill-${r.point_type_name}">${r.point_type_name||'—'}</span></td>
+          <td style="font-size:12px;font-weight:500;">${r.contaminant}</td>
+          <td class="mono ${r.exceeds_mcl_flag ? 'mcl-exceeded' : 'mcl-pass'}">${r.value} ${r.unit}</td>
+          <td class="mono" style="color:var(--muted);">${r.mcl_value} ${r.unit}</td>
+          <td><span class="pill ${r.exceeds_mcl_flag ? 'pill-exceeded' : 'pill-pass'}">${r.exceeds_mcl_flag ? '⚠ EXCEEDS' : '✓ PASS'}</span></td>
+          <td style="font-size:12px;">${r.vendor_name||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    } catch(e) {}
+  }
+
+  async function loadContaminants() {
+    try {
+      const res = await fetch(`${API}/api/wq/contaminant-summary`);
+      const data = await res.json();
+      const wrap = document.getElementById('contaminant-grid');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No data</div>'; return; }
+      wrap.innerHTML = `<div class="contaminant-grid">${data.map(c => {
+        const pct = c.mcl_value > 0 ? Math.min((c.avg_value / c.mcl_value) * 100, 200) : 0;
+        const color = c.exceed_count > 0 ? 'var(--red)' : 'var(--green)';
+        return `<div class="contaminant-card">
+          <div class="contaminant-name">${c.contaminant}</div>
+          <div class="contaminant-value" style="color:${color};">${parseFloat(c.avg_value).toFixed(3)} <span style="font-size:12px;color:var(--muted);">${c.unit}</span></div>
+          <div class="contaminant-mcl">MCL: ${c.mcl_value} ${c.unit} · ${c.exceed_count} of ${c.total_count} exceed</div>
+          <div class="mcl-bar-track"><div class="mcl-bar-fill" style="width:${Math.min(pct,100)}%;background:${color};"></div></div>
+        </div>`;
+      }).join('')}</div>`;
+    } catch(e) {}
+  }
+
+  async function loadEquipment() {
+    try {
+      const res = await fetch(`${API}/api/wq/equipment`);
+      const data = await res.json();
+      const wrap = document.getElementById('equipment-table');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No equipment records</div>'; return; }
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Type</th><th>Make/Model</th><th>PID</th><th>County</th><th>Installed</th><th>Last Service</th><th>Next Service</th></tr></thead>
+        <tbody>${data.map(e => {
+          const overdue = e.next_service_date && new Date(e.next_service_date) < new Date();
+          return `<tr>
+            <td><span class="pill pill-${e.equipment_type}">${e.equipment_type}</span></td>
+            <td style="font-size:12px;">${e.make||''} ${e.model||''}</td>
+            <td class="pid-cell">${e.pid||'—'}</td>
+            <td style="font-size:12px;">${e.county_name||'—'}</td>
+            <td class="mono">${formatDate(e.install_date)||'—'}</td>
+            <td class="mono">${formatDate(e.last_service_date)||'—'}</td>
+            <td class="mono" style="color:${overdue ? 'var(--red)' : 'var(--text)'};">${formatDate(e.next_service_date)||'—'}${overdue ? ' ⚠' : ''}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+      const serviceWrap = document.getElementById('service-due');
+      const upcoming = data.filter(e => e.next_service_date && new Date(e.next_service_date) <= new Date(Date.now() + 30*24*60*60*1000));
+      if (!upcoming.length) {
+        serviceWrap.innerHTML = '<div style="font-size:13px;color:var(--green);">✓ No service due in the next 30 days</div>';
+      } else {
+        serviceWrap.innerHTML = upcoming.map(e => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+            <div style="font-weight:500;">${e.equipment_type} — ${e.make} ${e.model}</div>
+            <div style="font-size:12px;color:var(--muted);">${e.pid} · Due: <span style="color:var(--yellow);">${formatDate(e.next_service_date)}</span></div>
+          </div>
+        `).join('');
+      }
+    } catch(e) {}
+  }
+
+  async function loadLabs() {
+    try {
+      const res = await fetch(`${API}/api/wq/labs`);
+      const data = await res.json();
+      const wrap = document.getElementById('lab-table');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No lab data</div>'; return; }
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Lab</th><th>Total Samples</th><th>Exceeding MCL</th><th>Pass Rate</th></tr></thead>
+        <tbody>${data.map(l => {
+          const rate = l.total > 0 ? Math.round(((l.total - l.exceeded)/l.total)*100) : 0;
+          return `<tr>
+            <td style="font-weight:500;">${l.vendor_name}</td>
+            <td class="mono">${l.total}</td>
+            <td class="mono" style="color:var(--red);">${l.exceeded}</td>
+            <td class="mono" style="color:${rate >= 80 ? 'var(--green)' : 'var(--yellow)'};">${rate}%</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    } catch(e) {}
+  }
+
+  function formatDate(d) { if(!d) return null; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+  init();
+</script>
+</body>
+</html>

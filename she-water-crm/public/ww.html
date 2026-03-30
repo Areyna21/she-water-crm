@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Well Program — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1117;--surface:#181c27;--border:#252a38;--text:#e2e8f0;--muted:#64748b;--accent:#3b82f6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--purple:#a78bfa;--cyan:#22d3ee;--ww:#a78bfa;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:52px;position:sticky;top:0;z-index:100;}
+  .nav-brand{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cyan);}
+  .nav-back{color:var(--muted);font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit;padding:6px 10px;border-radius:6px;transition:all 0.15s;}
+  .nav-back:hover{color:var(--text);background:var(--border);}
+  .nav-prog{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+  .prog-dot{width:10px;height:10px;border-radius:50%;background:var(--ww);}
+  .nav-spacer{flex:1;}
+  .nav-stats{display:flex;gap:20px;font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .nav-stat{color:var(--muted);}
+  .nav-stat span{color:var(--text);font-weight:600;}
+  .container{max-width:1400px;margin:0 auto;padding:24px;}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);}
+  .tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--ww);border-bottom-color:var(--ww);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+  .stat-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;}
+  .stat-value.purple{color:var(--ww);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.yellow{color:var(--yellow);}
+  .stat-value.red{color:var(--red);}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+  .card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .card-title{font-size:13px;font-weight:600;}
+  .card-body{padding:16px;}
+  .btn{padding:8px 14px;border-radius:7px;border:none;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .btn-primary{background:var(--ww);color:white;}
+  .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--border);}
+  .btn-green{background:var(--green);color:white;}
+  .btn-sm{padding:4px 10px;font-size:11px;}
+  .input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s;}
+  .input:focus{border-color:var(--ww);}
+  .input::placeholder{color:var(--muted);}
+  select.input{cursor:pointer;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface);}
+  td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:rgba(255,255,255,0.02);}
+  .pid-cell{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+  .pill-open{background:rgba(167,139,250,0.15);color:var(--ww);}
+  .pill-pending_approval{background:rgba(245,158,11,0.15);color:var(--yellow);}
+  .pill-approved{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-closed{background:rgba(100,116,139,0.2);color:var(--muted);}
+  .pill-active{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-domestic{background:rgba(167,139,250,0.15);color:var(--ww);}
+  .pill-community{background:rgba(34,211,238,0.15);color:var(--cyan);}
+  .pill-agricultural{background:rgba(245,158,11,0.15);color:var(--yellow);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  @media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+  .loading{text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .timeline{padding:16px 0;}
+  .timeline-step{display:flex;gap:16px;padding:12px 0;position:relative;}
+  .timeline-step::before{content:'';position:absolute;left:15px;top:40px;bottom:-12px;width:2px;background:var(--border);}
+  .timeline-step:last-child::before{display:none;}
+  .step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .step-dot.done{background:rgba(34,197,94,0.2);border:2px solid var(--green);}
+  .step-dot.active{background:rgba(167,139,250,0.2);border:2px solid var(--ww);}
+  .step-dot.pending{background:var(--surface);border:2px solid var(--border);}
+  .step-content{flex:1;}
+  .step-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+  .step-date{font-size:11px;color:var(--muted);}
+  .vendor-bar-wrap{margin-bottom:10px;}
+  .vendor-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+  .vendor-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .vendor-bar-fill{height:100%;border-radius:4px;background:var(--ww);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="window.location.href='/'">← Dashboard</button>
+  <div class="nav-prog"><div class="prog-dot"></div>Water Well Program</div>
+  <div class="nav-spacer"></div>
+  <div class="nav-stats">
+    <div class="nav-stat">Active: <span id="nav-active">—</span></div>
+    <div class="nav-stat">In Progress: <span id="nav-progress">—</span></div>
+    <div class="nav-stat">Pending Approval: <span id="nav-pending" style="color:var(--yellow);">—</span></div>
+  </div>
+</nav>
+<div class="container">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Active Cases</div><div class="stat-value purple" id="s-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Approval</div><div class="stat-value yellow" id="s-pending">—</div></div>
+    <div class="stat-card"><div class="stat-label">Drilling In Progress</div><div class="stat-value purple" id="s-drilling">—</div></div>
+    <div class="stat-card"><div class="stat-label">Completed This Year</div><div class="stat-value green" id="s-completed">—</div></div>
+    <div class="stat-card"><div class="stat-label">WQ Referrals</div><div class="stat-value yellow" id="s-wq-refs">—</div></div>
+    <div class="stat-card"><div class="stat-label">Total Wells</div><div class="stat-value" id="s-wells">—</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('cases',this)">📋 Cases</button>
+    <button class="tab" onclick="showTab('pipeline',this)">🔄 Pipeline</button>
+    <button class="tab" onclick="showTab('wells',this)">💧 Wells</button>
+    <button class="tab" onclick="showTab('drillers',this)">⛏ Drillers</button>
+    <button class="tab" onclick="showTab('approvals',this)">✅ Approvals</button>
+  </div>
+
+  <!-- CASES -->
+  <div class="tab-panel active" id="tab-cases">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Water Well Cases</div>
+        <div class="filter-row">
+          <input class="input" id="c-search" placeholder="Search PID, name, APN..." oninput="filterCases()" style="width:200px;" />
+          <select class="input" id="c-status" onchange="filterCases()">
+            <option value="">All Status</option>
+            <option value="open">Open</option>
+            <option value="pending_approval">Pending Approval</option>
+            <option value="approved">Approved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select class="input" id="c-county" onchange="filterCases()">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option><option>Kern</option><option>Madera</option><option>Merced</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='/intake.html'">+ New Case</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="cases-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="tab-panel" id="tab-pipeline">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Active Case Pipeline</div></div>
+      <div class="card-body">
+        <div class="three-col" id="pipeline-cols">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--yellow);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Pending Approval</div>
+            <div id="pipeline-pending"><div class="loading">Loading...</div></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--ww);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Approved — In Progress</div>
+            <div id="pipeline-approved"><div class="loading">Loading...</div></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Drilling / Near Complete</div>
+            <div id="pipeline-drilling"><div class="loading">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WELLS -->
+  <div class="tab-panel" id="tab-wells">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Well Inventory</div>
+        <div class="filter-row">
+          <select class="input" id="w-type" onchange="loadWells()">
+            <option value="">All Types</option>
+            <option value="domestic">Domestic</option>
+            <option value="community">Community</option>
+            <option value="agricultural">Agricultural</option>
+          </select>
+          <select class="input" id="w-county" onchange="loadWells()">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option><option>Kern</option>
+          </select>
+        </div>
+      </div>
+      <div id="wells-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- DRILLERS -->
+  <div class="tab-panel" id="tab-drillers">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Driller Performance</div></div>
+        <div class="card-body" id="driller-bars"><div class="loading">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Driller Summary</div></div>
+        <div id="driller-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROVALS -->
+  <div class="tab-panel" id="tab-approvals">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Approval Queue</div></div>
+      <div id="approvals-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  let allCases = [];
+
+  async function init() {
+    await Promise.all([loadStats(), loadCases(), loadWells(), loadDrillers(), loadApprovals()]);
+    buildPipeline();
+  }
+
+  function showTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/ww/stats`);
+      const d = await res.json();
+      document.getElementById('s-active').textContent    = d.active || 0;
+      document.getElementById('s-pending').textContent   = d.pending_approval || 0;
+      document.getElementById('s-drilling').textContent  = d.drilling || 0;
+      document.getElementById('s-completed').textContent = d.completed || 0;
+      document.getElementById('s-wq-refs').textContent   = d.wq_referrals || 0;
+      document.getElementById('s-wells').textContent     = d.total_wells || 0;
+      document.getElementById('nav-active').textContent  = d.active || 0;
+      document.getElementById('nav-progress').textContent= d.drilling || 0;
+      document.getElementById('nav-pending').textContent = d.pending_approval || 0;
+    } catch(e) {}
+  }
+
+  async function loadCases() {
+    try {
+      const res = await fetch(`${API}/api/ww/cases`);
+      allCases = await res.json();
+      renderCases(allCases);
+    } catch(e) { document.getElementById('cases-table').innerHTML = '<div class="empty">Error loading</div>'; }
+  }
+
+  function filterCases() {
+    const q = document.getElementById('c-search').value.toLowerCase();
+    const status = document.getElementById('c-status').value;
+    const county = document.getElementById('c-county').value;
+    const f = allCases.filter(c =>
+      (!q || c.pid?.toLowerCase().includes(q) || c.last_name?.toLowerCase().includes(q) || c.apn_number?.includes(q)) &&
+      (!status || c.case_status === status) &&
+      (!county || c.county_name === county)
+    );
+    renderCases(f);
+  }
+
+  function renderCases(data) {
+    const wrap = document.getElementById('cases-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No cases found</div>'; return; }
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Case #</th><th>PID</th><th>Name</th><th>County</th><th>APN</th><th>Opened</th><th>Caseworker</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody>${data.map(c => `<tr class="clickable">
+        <td class="mono">#${c.case_id}</td>
+        <td class="pid-cell">${c.pid||'—'}</td>
+        <td style="font-weight:500;">${c.last_name||'—'}, ${c.first_name||''}</td>
+        <td style="font-size:12px;">${c.county_name||'—'}</td>
+        <td class="mono">${c.apn_number||'—'}</td>
+        <td class="mono">${formatDate(c.opened_date)}</td>
+        <td style="font-size:12px;">${c.assigned_staff||'—'}</td>
+        <td><span class="pill pill-${c.case_status}">${c.case_status?.replace('_',' ')}</span></td>
+        <td style="font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.notes||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  function buildPipeline() {
+    const pending  = allCases.filter(c => c.case_status === 'pending_approval');
+    const approved = allCases.filter(c => c.case_status === 'approved');
+    const open     = allCases.filter(c => c.case_status === 'open');
+
+    const renderCard = (c) => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span class="pid-cell">${c.pid}</span>
+          <span style="font-size:11px;color:var(--muted);">#${c.case_id}</span>
+        </div>
+        <div style="font-size:13px;font-weight:500;">${c.last_name}, ${c.first_name}</div>
+        <div style="font-size:11px;color:var(--muted);">${c.county_name} · ${formatDate(c.opened_date)}</div>
+      </div>
+    `;
+
+    document.getElementById('pipeline-pending').innerHTML  = pending.length  ? pending.map(renderCard).join('')  : '<div style="font-size:12px;color:var(--muted);">None</div>';
+    document.getElementById('pipeline-approved').innerHTML = approved.length ? approved.map(renderCard).join('') : '<div style="font-size:12px;color:var(--muted);">None</div>';
+    document.getElementById('pipeline-drilling').innerHTML = open.length     ? open.map(renderCard).join('')     : '<div style="font-size:12px;color:var(--muted);">None</div>';
+  }
+
+  async function loadWells() {
+    try {
+      const type   = document.getElementById('w-type').value;
+      const county = document.getElementById('w-county').value;
+      const params = new URLSearchParams({ type, county });
+      const res = await fetch(`${API}/api/ww/wells?${params}`);
+      const data = await res.json();
+      const wrap = document.getElementById('wells-table');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No wells found</div>'; return; }
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Well #</th><th>Type</th><th>APN</th><th>County</th><th>Depth</th><th>Static Level</th><th>Drilled</th><th>Structures</th><th>Driller</th></tr></thead>
+        <tbody>${data.map(w => `<tr>
+          <td class="mono">${w.well_number||'—'}</td>
+          <td><span class="pill pill-${w.well_type}">${w.well_type}</span></td>
+          <td class="mono">${w.apn_number||'—'}</td>
+          <td style="font-size:12px;">${w.county_name||'—'}</td>
+          <td class="mono">${w.depth_ft ? w.depth_ft + ' ft' : '—'}</td>
+          <td class="mono">${w.static_water_level ? w.static_water_level + ' ft' : '—'}</td>
+          <td class="mono">${formatDate(w.drill_date)||'—'}</td>
+          <td style="text-align:center;">${w.structures_served||0}</td>
+          <td style="font-size:12px;">${w.driller_name||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    } catch(e) {}
+  }
+
+  async function loadDrillers() {
+    try {
+      const res = await fetch(`${API}/api/ww/drillers`);
+      const data = await res.json();
+      const barsWrap = document.getElementById('driller-bars');
+      const tableWrap = document.getElementById('driller-table');
+      if (!data.length) {
+        barsWrap.innerHTML = '<div class="empty">No driller data</div>';
+        tableWrap.innerHTML = '<div class="empty">No data</div>';
+        return;
+      }
+      const max = Math.max(...data.map(d => d.total_wells));
+      barsWrap.innerHTML = data.map(d => `
+        <div class="vendor-bar-wrap">
+          <div class="vendor-bar-label"><span>${d.vendor_name}</span><span style="font-family:'IBM Plex Mono',monospace;">${d.total_wells} wells</span></div>
+          <div class="vendor-bar-track"><div class="vendor-bar-fill" style="width:${max > 0 ? Math.round((d.total_wells/max)*100) : 0}%;"></div></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${d.counties_served}</div>
+        </div>
+      `).join('');
+      tableWrap.innerHTML = `<table>
+        <thead><tr><th>Driller</th><th>Wells</th><th>Avg Depth</th><th>Counties</th></tr></thead>
+        <tbody>${data.map(d => `<tr>
+          <td style="font-weight:500;">${d.vendor_name}</td>
+          <td class="mono">${d.total_wells}</td>
+          <td class="mono">${d.avg_depth ? Math.round(d.avg_depth) + ' ft' : '—'}</td>
+          <td style="font-size:12px;">${d.counties_served}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    } catch(e) {}
+  }
+
+  async function loadApprovals() {
+    try {
+      const res = await fetch(`${API}/api/ww/approvals`);
+      const data = await res.json();
+      const wrap = document.getElementById('approvals-table');
+      if (!data.length) { wrap.innerHTML = '<div class="empty">No pending approvals</div>'; return; }
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Case #</th><th>PID</th><th>Name</th><th>County</th><th>Submitted</th><th>Submitted By</th><th>Decision</th><th>Notes</th></tr></thead>
+        <tbody>${data.map(a => `<tr>
+          <td class="mono">#${a.case_id}</td>
+          <td class="pid-cell">${a.pid||'—'}</td>
+          <td style="font-weight:500;">${a.last_name||'—'}, ${a.first_name||''}</td>
+          <td style="font-size:12px;">${a.county_name||'—'}</td>
+          <td class="mono">${formatDate(a.submitted_date)}</td>
+          <td style="font-size:12px;">${a.submitted_by_name||'—'}</td>
+          <td><span class="pill pill-${a.decision || 'pending_approval'}">${a.decision||'pending'}</span></td>
+          <td style="font-size:11px;color:var(--muted);">${a.decision_notes||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    } catch(e) {}
+  }
+
+  function formatDate(d) { if(!d) return null; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+  init();
+</script>
+</body>
+</html>

@@ -540,3 +540,345 @@ app.post('/api/bw/log-miss', async (req, res) => {
     res.json({ success: true });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
+
+// ── TANK WATER ENDPOINTS ────────────────────────────────────
+
+app.get('/api/tw/stats', async (req, res) => {
+  try {
+    const now = new Date();
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const lastDay  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${new Date(now.getFullYear(),now.getMonth()+1,0).getDate()}`;
+    const r = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM program_enrollment pe JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='TW' AND pe.exit_date IS NULL) AS active,
+        (SELECT COUNT(*) FROM tank WHERE active_flag=TRUE) AS active_tanks,
+        (SELECT COUNT(*) FROM tank t JOIN tank_service_area tsa ON tsa.tank_id=t.tank_id GROUP BY t.tank_id HAVING COUNT(tsa.structure_id)>1 LIMIT 100) AS community_tanks,
+        (SELECT COUNT(*) FROM tank_fill WHERE fill_date BETWEEN $1 AND $2) AS fills,
+        (SELECT COUNT(*) FROM tank_fill WHERE fill_status='missed' AND scheduled_date BETWEEN $1 AND $2) AS missed_fills,
+        (SELECT COALESCE(SUM(gallons_delivered),0) FROM tank_fill WHERE fill_date BETWEEN $1 AND $2) AS total_gallons
+    `, [firstDay, lastDay]);
+    res.json(r.rows[0]);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tw/participants', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT p.pid, p.first_name, p.last_name, pe.program_specific_id,
+             es.status_name, ps.household_size, a.apn_number, c.county_name,
+             s.structure_type, t.capacity_gallons, v.vendor_name,
+             (SELECT tf.fill_date FROM tank_fill tf WHERE tf.enrollment_id=pe.enrollment_id ORDER BY tf.fill_date DESC LIMIT 1) AS last_fill
+      FROM program_enrollment pe
+      JOIN program pr ON pr.program_id=pe.program_id
+      JOIN person p ON p.pid=pe.pid
+      JOIN enrollment_status es ON es.status_id=pe.status_id
+      JOIN structure s ON s.structure_id=pe.structure_id
+      JOIN apn a ON a.apn_id=s.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      JOIN person_structure ps ON ps.pid=p.pid AND ps.end_date IS NULL
+      LEFT JOIN tank_service_area tsa ON tsa.structure_id=s.structure_id
+      LEFT JOIN tank t ON t.tank_id=tsa.tank_id
+      LEFT JOIN vendor v ON v.vendor_id=t.vendor_id
+      WHERE pr.program_code='TW' AND pe.exit_date IS NULL
+      GROUP BY p.pid,p.first_name,p.last_name,pe.program_specific_id,es.status_name,
+               ps.household_size,a.apn_number,c.county_name,s.structure_type,
+               t.capacity_gallons,v.vendor_name,pe.enrollment_id
+      ORDER BY p.last_name
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tw/tanks', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT t.tank_id, t.capacity_gallons, t.install_date,
+             v.vendor_name, c.county_name,
+             COUNT(DISTINCT tsa.structure_id) AS structures_served,
+             COUNT(DISTINCT tsa.structure_id) > 1 AS is_community
+      FROM tank t
+      LEFT JOIN vendor v ON v.vendor_id=t.vendor_id
+      LEFT JOIN tank_service_area tsa ON tsa.tank_id=t.tank_id
+      LEFT JOIN apn a ON a.apn_id=tsa.apn_id
+      LEFT JOIN county c ON c.county_id=a.county_id
+      WHERE t.active_flag=TRUE
+      GROUP BY t.tank_id,t.capacity_gallons,t.install_date,v.vendor_name,c.county_name
+      ORDER BY t.tank_id
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tw/fills', async (req, res) => {
+  const { vendor, status, from, to } = req.query;
+  try {
+    const conditions = [];
+    const params = [];
+    if (vendor) { params.push(vendor); conditions.push(`tf.vendor_id=$${params.length}`); }
+    if (status) { params.push(status); conditions.push(`tf.fill_status=$${params.length}`); }
+    if (from)   { params.push(from);   conditions.push(`tf.scheduled_date>=$${params.length}`); }
+    if (to)     { params.push(to);     conditions.push(`tf.scheduled_date<=$${params.length}`); }
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const r = await pool.query(`
+      SELECT tf.fill_id, tf.scheduled_date, tf.fill_date, tf.fill_status,
+             tf.gallons_delivered, tf.tank_id,
+             p.first_name, p.last_name, c.county_name, v.vendor_name
+      FROM tank_fill tf
+      JOIN program_enrollment pe ON pe.enrollment_id=tf.enrollment_id
+      JOIN person p ON p.pid=pe.pid
+      JOIN structure s ON s.structure_id=pe.structure_id
+      JOIN apn a ON a.apn_id=s.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN vendor v ON v.vendor_id=tf.vendor_id
+      ${where}
+      ORDER BY tf.scheduled_date DESC
+      LIMIT 200
+    `, params);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tw/vendor-performance', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT v.vendor_id, v.vendor_name,
+             COUNT(*) AS total,
+             SUM(CASE WHEN tf.fill_status='completed' THEN 1 ELSE 0 END) AS completed,
+             SUM(CASE WHEN tf.fill_status='missed'    THEN 1 ELSE 0 END) AS missed,
+             COALESCE(SUM(tf.gallons_delivered),0) AS total_gallons
+      FROM tank_fill tf
+      JOIN vendor v ON v.vendor_id=tf.vendor_id
+      GROUP BY v.vendor_id,v.vendor_name ORDER BY total DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── WATER QUALITY ENDPOINTS ─────────────────────────────────
+
+app.get('/api/wq/stats', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM program_enrollment pe JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='WQ' AND pe.exit_date IS NULL) AS active,
+        (SELECT COUNT(*) FROM sample_point WHERE active_flag=TRUE) AS sample_points,
+        (SELECT COUNT(*) FROM water_quality_result WHERE exceeds_mcl_flag=TRUE) AS exceeded,
+        (SELECT COUNT(*) FROM equipment WHERE equipment_type='POE' AND active_flag=TRUE) AS poe,
+        (SELECT COUNT(*) FROM equipment WHERE equipment_type='POU' AND active_flag=TRUE) AS pou,
+        (SELECT COUNT(*) FROM water_quality_result WHERE result_date IS NULL) AS pending
+    `);
+    res.json(r.rows[0]);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/wq/participants', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT DISTINCT p.pid, p.first_name, p.last_name,
+             a.apn_number, c.county_name,
+             spt.point_type_name, wqr.contaminant, wqr.value, wqr.unit,
+             wqr.mcl_value, wqr.exceeds_mcl_flag,
+             e.equipment_type
+      FROM program_enrollment pe
+      JOIN program pr ON pr.program_id=pe.program_id
+      JOIN person p ON p.pid=pe.pid
+      JOIN structure s ON s.structure_id=pe.structure_id
+      JOIN apn a ON a.apn_id=s.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN sample_point sp ON sp.structure_id=s.structure_id
+      LEFT JOIN sample_point_type spt ON spt.point_type_id=sp.point_type_id
+      LEFT JOIN water_quality_result wqr ON wqr.sample_point_id=sp.sample_point_id
+      LEFT JOIN equipment e ON e.sample_point_id=sp.sample_point_id
+      WHERE pr.program_code='WQ' AND pe.exit_date IS NULL
+      ORDER BY wqr.exceeds_mcl_flag DESC NULLS LAST, p.last_name
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/wq/results', async (req, res) => {
+  const { contaminant, exceeds, county } = req.query;
+  try {
+    const conditions = ['pr.program_code=\'WQ\''];
+    const params = [];
+    if (contaminant) { params.push(contaminant); conditions.push(`wqr.contaminant=$${params.length}`); }
+    if (exceeds !== '') { params.push(exceeds === 'true'); conditions.push(`wqr.exceeds_mcl_flag=$${params.length}`); }
+    if (county) { params.push(county); conditions.push(`c.county_name=$${params.length}`); }
+    const r = await pool.query(`
+      SELECT wqr.result_id, wqr.sample_date, wqr.result_date,
+             wqr.contaminant, wqr.value, wqr.unit, wqr.mcl_value, wqr.exceeds_mcl_flag,
+             p.pid, p.first_name, p.last_name,
+             c.county_name, spt.point_type_name, v.vendor_name
+      FROM water_quality_result wqr
+      JOIN sample_point sp ON sp.sample_point_id=wqr.sample_point_id
+      JOIN sample_point_type spt ON spt.point_type_id=sp.point_type_id
+      LEFT JOIN structure s ON s.structure_id=sp.structure_id
+      LEFT JOIN program_enrollment pe ON pe.structure_id=s.structure_id
+      LEFT JOIN program pr ON pr.program_id=pe.program_id
+      LEFT JOIN person p ON p.pid=pe.pid
+      LEFT JOIN apn a ON a.apn_id=s.apn_id
+      LEFT JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN vendor v ON v.vendor_id=wqr.vendor_id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY wqr.sample_date DESC LIMIT 200
+    `, params);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/wq/contaminant-summary', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT contaminant, unit,
+             AVG(value) AS avg_value, MAX(value) AS max_value,
+             MIN(mcl_value) AS mcl_value,
+             SUM(CASE WHEN exceeds_mcl_flag THEN 1 ELSE 0 END) AS exceed_count,
+             COUNT(*) AS total_count
+      FROM water_quality_result
+      GROUP BY contaminant, unit
+      ORDER BY exceed_count DESC, total_count DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/wq/equipment', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT e.equipment_id, e.equipment_type, e.make, e.model, e.serial_number,
+             e.install_date, e.last_service_date, e.next_service_date,
+             p.pid, c.county_name
+      FROM equipment e
+      JOIN sample_point sp ON sp.sample_point_id=e.sample_point_id
+      LEFT JOIN structure s ON s.structure_id=sp.structure_id
+      LEFT JOIN program_enrollment pe ON pe.structure_id=s.structure_id
+      LEFT JOIN person p ON p.pid=pe.pid
+      LEFT JOIN apn a ON a.apn_id=s.apn_id
+      LEFT JOIN county c ON c.county_id=a.county_id
+      WHERE e.active_flag=TRUE
+      ORDER BY e.next_service_date ASC NULLS LAST
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/wq/labs', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT v.vendor_name,
+             COUNT(*) AS total,
+             SUM(CASE WHEN exceeds_mcl_flag THEN 1 ELSE 0 END) AS exceeded
+      FROM water_quality_result wqr
+      JOIN vendor v ON v.vendor_id=wqr.vendor_id
+      GROUP BY v.vendor_name ORDER BY total DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── WATER WELL ENDPOINTS ────────────────────────────────────
+
+app.get('/api/ww/stats', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM case_record cr JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='WW' AND cr.case_status='open') AS active,
+        (SELECT COUNT(*) FROM case_record cr JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='WW' AND cr.case_status='pending_approval') AS pending_approval,
+        (SELECT COUNT(*) FROM case_record cr JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='WW' AND cr.case_status='approved') AS drilling,
+        (SELECT COUNT(*) FROM case_record cr JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id JOIN program pr ON pr.program_id=pe.program_id WHERE pr.program_code='WW' AND cr.case_status='closed' AND cr.closed_date >= date_trunc('year',CURRENT_DATE)) AS completed,
+        (SELECT COUNT(*) FROM activity a JOIN activity_type at ON at.activity_type_id=a.activity_type_id WHERE at.activity_name='WQ Referral Triggered') AS wq_referrals,
+        (SELECT COUNT(*) FROM well WHERE active_flag=TRUE) AS total_wells
+    `);
+    res.json(r.rows[0]);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ww/cases', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT cr.case_id, cr.opened_date, cr.closed_date, cr.case_status, cr.notes,
+             p.pid, p.first_name, p.last_name,
+             a.apn_number, c.county_name,
+             st.first_name || ' ' || st.last_name AS assigned_staff
+      FROM case_record cr
+      JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id
+      JOIN program pr ON pr.program_id=pe.program_id
+      JOIN person p ON p.pid=pe.pid
+      JOIN structure s ON s.structure_id=pe.structure_id
+      JOIN apn a ON a.apn_id=s.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN staff st ON st.staff_id=cr.assigned_staff_id
+      WHERE pr.program_code='WW'
+      ORDER BY cr.opened_date DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ww/wells', async (req, res) => {
+  const { type, county } = req.query;
+  try {
+    const conditions = ['w.active_flag=TRUE'];
+    const params = [];
+    if (type)   { params.push(type);   conditions.push(`w.well_type=$${params.length}`); }
+    if (county) { params.push(county); conditions.push(`c.county_name=$${params.length}`); }
+    const r = await pool.query(`
+      SELECT w.well_id, w.well_number, w.well_type, w.depth_ft,
+             w.static_water_level, w.drill_date,
+             a.apn_number, c.county_name,
+             COUNT(DISTINCT ws.structure_id) AS structures_served,
+             v.vendor_name AS driller_name
+      FROM well w
+      JOIN apn a ON a.apn_id=w.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN well_structure ws ON ws.well_id=w.well_id
+      LEFT JOIN vendor v ON v.vendor_id=w.driller_id
+      WHERE ${conditions.join(' AND ')}
+      GROUP BY w.well_id,w.well_number,w.well_type,w.depth_ft,w.static_water_level,
+               w.drill_date,a.apn_number,c.county_name,v.vendor_name
+      ORDER BY w.well_id
+    `, params);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ww/drillers', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT v.vendor_id, v.vendor_name,
+             COUNT(w.well_id) AS total_wells,
+             AVG(w.depth_ft) AS avg_depth,
+             STRING_AGG(DISTINCT c.county_name, ', ') AS counties_served
+      FROM vendor v
+      JOIN vendor_type vt ON vt.vendor_type_id=v.vendor_type_id
+      LEFT JOIN well w ON w.driller_id=v.vendor_id
+      LEFT JOIN apn a ON a.apn_id=w.apn_id
+      LEFT JOIN county c ON c.county_id=a.county_id
+      WHERE vt.type_name='Well Driller'
+      GROUP BY v.vendor_id,v.vendor_name ORDER BY total_wells DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/ww/approvals', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT ap.approval_id, ap.submitted_date, ap.decision, ap.decision_notes,
+             cr.case_id, p.pid, p.first_name, p.last_name, c.county_name,
+             sub.first_name || ' ' || sub.last_name AS submitted_by_name
+      FROM approval ap
+      JOIN case_record cr ON cr.case_id=ap.case_id
+      JOIN program_enrollment pe ON pe.enrollment_id=cr.enrollment_id
+      JOIN program pr ON pr.program_id=pe.program_id
+      JOIN person p ON p.pid=pe.pid
+      JOIN structure s ON s.structure_id=pe.structure_id
+      JOIN apn a ON a.apn_id=s.apn_id
+      JOIN county c ON c.county_id=a.county_id
+      LEFT JOIN staff sub ON sub.staff_id=ap.submitted_by
+      WHERE pr.program_code='WW'
+      ORDER BY ap.submitted_date DESC
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});

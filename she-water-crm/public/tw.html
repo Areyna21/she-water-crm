@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tank Water Program — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f1117;--surface:#181c27;--border:#252a38;--text:#e2e8f0;
+    --muted:#64748b;--accent:#3b82f6;--green:#22c55e;--yellow:#f59e0b;
+    --red:#ef4444;--purple:#a78bfa;--cyan:#22d3ee;--tw:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:52px;position:sticky;top:0;z-index:100;}
+  .nav-brand{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cyan);}
+  .nav-back{color:var(--muted);font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit;padding:6px 10px;border-radius:6px;transition:all 0.15s;}
+  .nav-back:hover{color:var(--text);background:var(--border);}
+  .nav-prog{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+  .prog-dot{width:10px;height:10px;border-radius:50%;background:var(--tw);}
+  .nav-spacer{flex:1;}
+  .nav-stats{display:flex;gap:20px;font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .nav-stat{color:var(--muted);}
+  .nav-stat span{color:var(--text);font-weight:600;}
+  .container{max-width:1400px;margin:0 auto;padding:24px;}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);}
+  .tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--tw);border-bottom-color:var(--tw);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+  .stat-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;}
+  .stat-value.green{color:var(--green);}
+  .stat-value.yellow{color:var(--yellow);}
+  .stat-value.blue{color:var(--tw);}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+  .card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .card-title{font-size:13px;font-weight:600;}
+  .card-body{padding:16px;}
+  .btn{padding:8px 14px;border-radius:7px;border:none;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .btn-primary{background:var(--tw);color:white;}
+  .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--border);}
+  .btn-yellow{background:var(--yellow);color:#000;}
+  .btn-sm{padding:4px 10px;font-size:11px;}
+  .input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s;}
+  .input:focus{border-color:var(--tw);}
+  .input::placeholder{color:var(--muted);}
+  select.input{cursor:pointer;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface);}
+  td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:rgba(255,255,255,0.02);}
+  .pid-cell{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+  .pill-active{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-completed{background:rgba(59,130,246,0.15);color:var(--tw);}
+  .pill-missed{background:rgba(239,68,68,0.15);color:var(--red);}
+  .pill-scheduled{background:rgba(34,197,94,0.15);color:var(--green);}
+  .pill-inactive{background:rgba(100,116,139,0.2);color:var(--muted);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+  .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+  .loading{text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;}
+  .tank-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+  .tank-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .tank-id{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--tw);}
+  .tank-capacity{font-size:12px;color:var(--muted);}
+  .tank-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+  .tank-meta-item .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+  .tank-meta-item .value{font-size:13px;}
+  .fill-history{font-size:12px;}
+  .fill-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);}
+  .fill-row:last-child{border-bottom:none;}
+  .progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px;}
+  .progress-fill{height:100%;background:var(--tw);border-radius:3px;}
+  .vendor-bar-wrap{margin-bottom:10px;}
+  .vendor-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+  .vendor-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .vendor-bar-fill{height:100%;border-radius:4px;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="window.location.href='/'">← Dashboard</button>
+  <div class="nav-prog"><div class="prog-dot"></div>Tank Water Program</div>
+  <div class="nav-spacer"></div>
+  <div class="nav-stats">
+    <div class="nav-stat">Active: <span id="nav-active">—</span></div>
+    <div class="nav-stat">Tanks Placed: <span id="nav-tanks">—</span></div>
+    <div class="nav-stat">Fills This Month: <span id="nav-fills">—</span></div>
+  </div>
+</nav>
+<div class="container">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Active Participants</div><div class="stat-value blue" id="s-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Active Tanks</div><div class="stat-value blue" id="s-tanks">—</div></div>
+    <div class="stat-card"><div class="stat-label">Community Tanks</div><div class="stat-value" id="s-community">—</div></div>
+    <div class="stat-card"><div class="stat-label">Fills This Month</div><div class="stat-value green" id="s-fills">—</div></div>
+    <div class="stat-card"><div class="stat-label">Missed Fills</div><div class="stat-value yellow" id="s-missed">—</div></div>
+    <div class="stat-card"><div class="stat-label">Total Gallons</div><div class="stat-value" id="s-gallons">—</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('participants',this)">👥 Participants</button>
+    <button class="tab" onclick="showTab('tanks',this)">🛢 Tanks</button>
+    <button class="tab" onclick="showTab('fills',this)">📋 Fill Schedule</button>
+    <button class="tab" onclick="showTab('vendors',this)">🚚 Haulers</button>
+  </div>
+
+  <!-- PARTICIPANTS -->
+  <div class="tab-panel active" id="tab-participants">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active TW Participants</div>
+        <div class="filter-row">
+          <input class="input" id="p-search" placeholder="Search name, PID, APN..." oninput="filterParticipants()" style="width:200px;" />
+          <select class="input" id="p-county" onchange="filterParticipants()">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option><option>Kern</option><option>Madera</option><option>Merced</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='/intake.html'">+ New Enrollment</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="participant-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- TANKS -->
+  <div class="tab-panel" id="tab-tanks">
+    <div class="two-col">
+      <div>
+        <div class="card-title" style="margin-bottom:12px;font-size:15px;font-weight:600;">Individual Tanks</div>
+        <div id="individual-tanks"><div class="loading">Loading...</div></div>
+      </div>
+      <div>
+        <div class="card-title" style="margin-bottom:12px;font-size:15px;font-weight:600;">Community Tanks</div>
+        <div id="community-tanks"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILL SCHEDULE -->
+  <div class="tab-panel" id="tab-fills">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Fill Schedule</div>
+        <div class="filter-row">
+          <select class="input" id="fill-vendor" onchange="loadFills()">
+            <option value="">All Haulers</option>
+          </select>
+          <select class="input" id="fill-status" onchange="loadFills()">
+            <option value="">All Status</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="completed">Completed</option>
+            <option value="missed">Missed</option>
+          </select>
+          <input class="input" id="fill-date-from" type="date" onchange="loadFills()" />
+          <input class="input" id="fill-date-to" type="date" onchange="loadFills()" />
+        </div>
+      </div>
+      <div id="fill-table"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- VENDORS -->
+  <div class="tab-panel" id="tab-vendors">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Hauler Fill Rate</div></div>
+        <div class="card-body" id="vendor-bars"><div class="loading">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Hauler Summary</div></div>
+        <div id="vendor-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  let allParticipants = [];
+
+  async function init() {
+    await Promise.all([loadStats(), loadParticipants(), loadTanks(), loadFills(), loadVendors()]);
+  }
+
+  function showTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/tw/stats`);
+      const d = await res.json();
+      document.getElementById('s-active').textContent   = d.active || 0;
+      document.getElementById('s-tanks').textContent    = d.active_tanks || 0;
+      document.getElementById('s-community').textContent= d.community_tanks || 0;
+      document.getElementById('s-fills').textContent    = d.fills || 0;
+      document.getElementById('s-missed').textContent   = d.missed_fills || 0;
+      document.getElementById('s-gallons').textContent  = d.total_gallons ? Number(d.total_gallons).toLocaleString() : '—';
+      document.getElementById('nav-active').textContent = d.active || 0;
+      document.getElementById('nav-tanks').textContent  = d.active_tanks || 0;
+      document.getElementById('nav-fills').textContent  = d.fills || 0;
+    } catch(e) {}
+  }
+
+  async function loadParticipants() {
+    try {
+      const res = await fetch(`${API}/api/tw/participants`);
+      allParticipants = await res.json();
+      renderParticipants(allParticipants);
+    } catch(e) { document.getElementById('participant-table').innerHTML = '<div class="empty">Error loading</div>'; }
+  }
+
+  function filterParticipants() {
+    const q = document.getElementById('p-search').value.toLowerCase();
+    const county = document.getElementById('p-county').value;
+    const f = allParticipants.filter(p =>
+      (!q || p.pid?.toLowerCase().includes(q) || p.first_name?.toLowerCase().includes(q) || p.last_name?.toLowerCase().includes(q)) &&
+      (!county || p.county_name === county)
+    );
+    renderParticipants(f);
+  }
+
+  function renderParticipants(data) {
+    const wrap = document.getElementById('participant-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No participants found</div>'; return; }
+    wrap.innerHTML = `<table>
+      <thead><tr><th>PID</th><th>Name</th><th>County</th><th>APN</th><th>Household</th><th>Tank</th><th>Hauler</th><th>Last Fill</th><th>Status</th></tr></thead>
+      <tbody>${data.map(p => `<tr class="clickable">
+        <td class="pid-cell">${p.pid}</td>
+        <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div></td>
+        <td style="font-size:12px;">${p.county_name||'—'}</td>
+        <td class="mono">${p.apn_number||'—'}</td>
+        <td style="text-align:center;">${p.household_size||'—'}</td>
+        <td style="font-size:12px;">${p.tank_capacity ? p.tank_capacity + ' gal' : '—'}</td>
+        <td style="font-size:12px;">${p.vendor_name||'—'}</td>
+        <td style="font-size:12px;">${formatDate(p.last_fill)||'—'}</td>
+        <td><span class="pill pill-${p.status_name?.toLowerCase()}">${p.status_name||'—'}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  async function loadTanks() {
+    try {
+      const res = await fetch(`${API}/api/tw/tanks`);
+      const data = await res.json();
+      const individual = data.filter(t => !t.is_community);
+      const community  = data.filter(t => t.is_community);
+      renderTanks('individual-tanks', individual);
+      renderTanks('community-tanks', community);
+    } catch(e) {}
+  }
+
+  function renderTanks(id, data) {
+    const wrap = document.getElementById(id);
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No tanks</div>'; return; }
+    wrap.innerHTML = data.map(t => `
+      <div class="tank-card">
+        <div class="tank-header">
+          <div>
+            <div class="tank-id">Tank #${t.tank_id}</div>
+            <div class="tank-capacity">${t.capacity_gallons ? t.capacity_gallons.toLocaleString() + ' gallon capacity' : '—'}</div>
+          </div>
+          <span class="pill pill-active">Active</span>
+        </div>
+        <div class="tank-meta">
+          <div class="tank-meta-item"><div class="label">Installed</div><div class="value">${formatDate(t.install_date)||'—'}</div></div>
+          <div class="tank-meta-item"><div class="label">County</div><div class="value">${t.county_name||'—'}</div></div>
+          <div class="tank-meta-item"><div class="label">Structures Served</div><div class="value">${t.structures_served||0}</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);">Hauler: ${t.vendor_name||'—'}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadFills() {
+    try {
+      const vendor = document.getElementById('fill-vendor').value;
+      const status = document.getElementById('fill-status').value;
+      const from   = document.getElementById('fill-date-from').value;
+      const to     = document.getElementById('fill-date-to').value;
+      const params = new URLSearchParams({ vendor, status, from, to });
+      const res = await fetch(`${API}/api/tw/fills?${params}`);
+      const data = await res.json();
+      renderFills(data);
+    } catch(e) {}
+  }
+
+  function renderFills(data) {
+    const wrap = document.getElementById('fill-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No fill records found</div>'; return; }
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Date</th><th>Tank</th><th>Participant</th><th>County</th><th>Hauler</th><th>Gallons</th><th>Status</th></tr></thead>
+      <tbody>${data.map(f => `<tr>
+        <td class="mono">${formatDate(f.scheduled_date)}</td>
+        <td class="mono">Tank #${f.tank_id}</td>
+        <td style="font-size:13px;">${f.last_name||'—'}, ${f.first_name||''}</td>
+        <td style="font-size:12px;">${f.county_name||'—'}</td>
+        <td style="font-size:12px;">${f.vendor_name||'—'}</td>
+        <td class="mono">${f.gallons_delivered ? f.gallons_delivered.toLocaleString() : '—'}</td>
+        <td><span class="pill pill-${f.fill_status}">${f.fill_status}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  async function loadVendors() {
+    try {
+      const res = await fetch(`${API}/api/tw/vendor-performance`);
+      const data = await res.json();
+      const sel = document.getElementById('fill-vendor');
+      data.forEach(v => { const o = document.createElement('option'); o.value = v.vendor_id; o.textContent = v.vendor_name; sel.appendChild(o); });
+      renderVendorBars(data);
+      renderVendorTable(data);
+    } catch(e) {}
+  }
+
+  function renderVendorBars(data) {
+    const wrap = document.getElementById('vendor-bars');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No data</div>'; return; }
+    wrap.innerHTML = data.map(v => {
+      const rate = v.total > 0 ? Math.round((v.completed/v.total)*100) : 0;
+      const color = rate >= 90 ? 'var(--green)' : rate >= 75 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="vendor-bar-wrap">
+        <div class="vendor-bar-label"><span>${v.vendor_name}</span><span style="color:${color};font-family:'IBM Plex Mono',monospace;">${rate}%</span></div>
+        <div class="vendor-bar-track"><div class="vendor-bar-fill" style="width:${rate}%;background:${color};"></div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${v.completed} completed · ${v.missed} missed</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderVendorTable(data) {
+    const wrap = document.getElementById('vendor-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No data</div>'; return; }
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Hauler</th><th>Total</th><th>Done</th><th>Missed</th><th>Gallons</th></tr></thead>
+      <tbody>${data.map(v => `<tr>
+        <td>${v.vendor_name}</td><td class="mono">${v.total}</td>
+        <td class="mono" style="color:var(--green);">${v.completed}</td>
+        <td class="mono" style="color:var(--red);">${v.missed}</td>
+        <td class="mono">${v.total_gallons ? Number(v.total_gallons).toLocaleString() : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  function formatDate(d) { if(!d) return null; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+  // Set default date range to current month
+  const now = new Date();
+  const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  const lastDay  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${new Date(now.getFullYear(),now.getMonth()+1,0).getDate()}`;
+  document.getElementById('fill-date-from').value = firstDay;
+  document.getElementById('fill-date-to').value   = lastDay;
+
+  init();
+</script>
+</body>
+</html>
