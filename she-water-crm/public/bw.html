@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bottled Water Program — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c27;
+    --border:   #252a38;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #3b82f6;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --purple:   #a78bfa;
+    --cyan:     #22d3ee;
+    --bw:       #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+  }
+  .nav-back {
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .nav-back:hover { color: var(--text); background: var(--border); }
+  .nav-prog {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .prog-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--bw);
+  }
+  .nav-spacer { flex: 1; }
+  .nav-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .nav-stat { color: var(--muted); }
+  .nav-stat span { color: var(--text); font-weight: 600; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--bw); border-bottom-color: var(--bw); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* CARDS */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.blue { color: var(--bw); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-title { font-size: 13px; font-weight: 600; }
+  .card-body { padding: 16px; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 8px 14px;
+    border-radius: 7px;
+    border: none;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--bw); color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-red { background: var(--red); color: white; }
+  .btn-yellow { background: var(--yellow); color: #000; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  .input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input:focus { border-color: var(--accent); }
+  .input::placeholder { color: var(--muted); }
+  select.input { cursor: pointer; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface);
+  }
+  td {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: rgba(255,255,255,0.02); }
+
+  .pid-cell { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--cyan); }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* STATUS PILLS */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .pill-delivered  { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .pill-scheduled  { background: rgba(59,130,246,0.15); color: var(--bw); }
+  .pill-missed     { background: rgba(239,68,68,0.15);  color: var(--red); }
+  .pill-disputed   { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .pill-active     { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .pill-inactive   { background: rgba(100,116,139,0.2); color: var(--muted); }
+  .pill-waitlist   { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+  /* CALENDAR */
+  .calendar-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cal-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .cal-nav button:hover { background: var(--border); }
+  .cal-month {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 140px;
+    text-align: center;
+  }
+  .cal-spacer { flex: 1; }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-day-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 8px 4px;
+  }
+  .cal-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    min-height: 90px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+  .cal-day:hover { border-color: var(--muted); }
+  .cal-day.empty { background: transparent; border-color: transparent; }
+  .cal-day.today { border-color: var(--bw); }
+  .cal-day-num {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .cal-day.today .cal-day-num { color: var(--bw); }
+  .cal-event {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-event.delivered  { background: rgba(34,197,94,0.2);  color: var(--green); }
+  .cal-event.scheduled  { background: rgba(59,130,246,0.2); color: var(--bw); }
+  .cal-event.missed     { background: rgba(239,68,68,0.2);  color: var(--red); }
+  .cal-event.disputed   { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .cal-more {
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .cal-more:hover { color: var(--text); }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover { border-color: var(--bw); background: rgba(59,130,246,0.05); }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .upload-sub { font-size: 13px; color: var(--muted); }
+
+  /* MISSED DELIVERY FORM */
+  .miss-form {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .miss-form.visible { display: block; }
+  .miss-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* EMAIL DRAFT */
+  .email-draft {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+    display: none;
+  }
+  .email-draft.visible { display: block; }
+  .email-subject {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--yellow);
+  }
+  .email-body {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  /* VENDOR PERFORMANCE */
+  .vendor-bar-wrap { margin-bottom: 12px; }
+  .vendor-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .vendor-bar-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .vendor-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .loading { text-align: center; padding: 32px; color: var(--muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .allotment-table { width: 100%; }
+  .allotment-table td, .allotment-table th { padding: 8px 12px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="window.location.href='/'">← Dashboard</button>
+  <div class="nav-prog"><div class="prog-dot"></div>Bottled Water Program</div>
+  <div class="nav-spacer"></div>
+  <div class="nav-stats">
+    <div class="nav-stat">Active: <span id="nav-active">—</span></div>
+    <div class="nav-stat">This Month: <span id="nav-deliveries">—</span></div>
+    <div class="nav-stat">Missed: <span id="nav-missed" style="color:var(--red);">—</span></div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat-card"><div class="stat-label">Active Participants</div><div class="stat-value blue" id="s-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Scheduled This Month</div><div class="stat-value" id="s-scheduled">—</div></div>
+    <div class="stat-card"><div class="stat-label">Delivered</div><div class="stat-value green" id="s-delivered">—</div></div>
+    <div class="stat-card"><div class="stat-label">Missed</div><div class="stat-value red" id="s-missed">—</div></div>
+    <div class="stat-card"><div class="stat-label">Disputed</div><div class="stat-value yellow" id="s-disputed">—</div></div>
+    <div class="stat-card"><div class="stat-label">Miss Rate</div><div class="stat-value yellow" id="s-missrate">—</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('calendar')">📅 Calendar</button>
+    <button class="tab" onclick="showTab('participants')">👥 Participants</button>
+    <button class="tab" onclick="showTab('missed')">⚠ Missed Deliveries</button>
+    <button class="tab" onclick="showTab('vendors')">🚚 Vendor Performance</button>
+    <button class="tab" onclick="showTab('upload')">⬆ Upload Calendar</button>
+  </div>
+
+  <!-- CALENDAR TAB -->
+  <div class="tab-panel active" id="tab-calendar">
+    <div class="card">
+      <div class="card-header">
+        <div class="cal-nav">
+          <button onclick="changeMonth(-1)">←</button>
+          <div class="cal-month" id="cal-month-label">—</div>
+          <button onclick="changeMonth(1)">→</button>
+          <button onclick="goToday()" style="font-size:11px;">Today</button>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--bw);"></div>Scheduled</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Delivered</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div>Missed</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);"></div>Disputed</div>
+        </div>
+        <div class="cal-spacer"></div>
+        <div class="filter-row">
+          <select class="input" id="cal-vendor-filter" onchange="renderCalendar()" style="font-size:12px;">
+            <option value="">All Vendors</option>
+          </select>
+          <select class="input" id="cal-county-filter" onchange="renderCalendar()" style="font-size:12px;">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option>
+            <option>Kern</option><option>Madera</option><option>Merced</option>
+            <option>Stanislaus</option><option>San Joaquin</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="calendar-grid" id="cal-headers"></div>
+        <div class="calendar-grid" id="cal-grid" style="margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- DAY DETAIL -->
+    <div class="card" id="day-detail" style="display:none;">
+      <div class="card-header">
+        <div class="card-title" id="day-detail-title">Deliveries for —</div>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('day-detail').style.display='none'">✕ Close</button>
+      </div>
+      <div class="card-body" id="day-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- PARTICIPANTS TAB -->
+  <div class="tab-panel" id="tab-participants">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active BW Participants</div>
+        <div class="filter-row">
+          <input class="input" id="p-search" placeholder="Search name, PID, APN..." oninput="filterParticipants()" style="width:200px;" />
+          <select class="input" id="p-vendor-filter" onchange="filterParticipants()" style="font-size:12px;">
+            <option value="">All Vendors</option>
+          </select>
+          <select class="input" id="p-county-filter" onchange="filterParticipants()" style="font-size:12px;">
+            <option value="">All Counties</option>
+            <option>Fresno</option><option>Tulare</option><option>Kings</option>
+            <option>Kern</option><option>Madera</option><option>Merced</option>
+          </select>
+          <button class="btn btn-red btn-sm" onclick="showMissForm()">+ Log Missed Delivery</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="participant-table">
+        <div class="loading">Loading participants...</div>
+      </div>
+    </div>
+
+    <!-- LOG MISSED DELIVERY FORM -->
+    <div class="miss-form" id="miss-form">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--red);">Log Missed Delivery</div>
+      <div class="miss-form-grid">
+        <div class="field">
+          <label>Participant</label>
+          <input class="input" id="miss-pid" placeholder="PID or search name..." />
+        </div>
+        <div class="field">
+          <label>Scheduled Date</label>
+          <input class="input" id="miss-date" type="date" />
+        </div>
+        <div class="field">
+          <label>Reported By</label>
+          <select class="input" id="miss-reporter">
+            <option value="participant">Participant — called in</option>
+            <option value="staff">Staff — noticed gap</option>
+            <option value="vendor">Vendor — self reported</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Vendor</label>
+          <select class="input" id="miss-vendor">
+            <option value="">Select vendor</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Reason</label>
+          <select class="input" id="miss-reason">
+            <option value="Vendor out of stock">Vendor out of stock</option>
+            <option value="No access to property">No access to property</option>
+            <option value="Wrong address">Wrong address</option>
+            <option value="Route skipped">Route skipped</option>
+            <option value="Vendor capacity issue">Vendor capacity issue</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <input class="input" id="miss-notes" placeholder="Additional details..." />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-red" onclick="submitMiss()">Log Missed Delivery</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('miss-form').classList.remove('visible')">Cancel</button>
+        <button class="btn btn-yellow" onclick="generateEmailDraft()">Draft Vendor Email</button>
+      </div>
+      <div class="email-draft" id="email-draft">
+        <div class="email-subject" id="email-subject"></div>
+        <div class="email-body" id="email-body"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="copyEmail()">Copy Email</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('email-draft').classList.remove('visible')">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSED DELIVERIES TAB -->
+  <div class="tab-panel" id="tab-missed">
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Missed Delivery Log</div>
+            <div class="filter-row">
+              <select class="input" id="miss-vendor-filter" onchange="loadMissed()" style="font-size:12px;">
+                <option value="">All Vendors</option>
+              </select>
+              <select class="input" id="miss-period-filter" onchange="loadMissed()" style="font-size:12px;">
+                <option value="30">Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+                <option value="all">All time</option>
+              </select>
+            </div>
+          </div>
+          <div id="missed-table"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Miss Patterns</div></div>
+          <div class="card-body" id="miss-patterns">
+            <div class="loading">Analyzing patterns...</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><div class="card-title">Allotment Rules</div></div>
+          <div class="card-body" style="padding:0;">
+            <table class="allotment-table">
+              <thead>
+                <tr>
+                  <th>Household Size</th>
+                  <th>Gallons</th>
+                  <th>Frequency</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>1–2</td><td class="mono">20 gal</td><td>Biweekly</td></tr>
+                <tr><td>3–4</td><td class="mono">40 gal</td><td>Biweekly</td></tr>
+                <tr><td>5–6</td><td class="mono">50 gal</td><td>Biweekly</td></tr>
+                <tr><td>7+</td><td class="mono">60 gal</td><td>Biweekly</td></tr>
+                <tr><td>Any</td><td class="mono">varies</td><td>Monthly (some routes)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VENDOR PERFORMANCE TAB -->
+  <div class="tab-panel" id="tab-vendors">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Delivery Rate by Vendor</div></div>
+        <div class="card-body" id="vendor-bars">
+          <div class="loading">Loading vendor data...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Vendor Summary</div></div>
+        <div id="vendor-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Miss Trend — Last 6 Months</div></div>
+      <div class="card-body" id="trend-chart">
+        <div id="trend-bars" style="display:flex;align-items:flex-end;gap:8px;height:120px;padding:0 8px;"></div>
+        <div id="trend-labels" style="display:flex;gap:8px;padding:4px 8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD TAB -->
+  <div class="tab-panel" id="tab-upload">
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Upload Vendor Calendar</div></div>
+          <div class="card-body">
+            <div class="upload-zone" onclick="document.getElementById('cal-file').click()">
+              <div class="upload-icon">📄</div>
+              <div class="upload-title">Click to upload vendor calendar</div>
+              <div class="upload-sub">PDF, Excel, or CSV accepted</div>
+              <input type="file" id="cal-file" style="display:none;" accept=".pdf,.xlsx,.csv" onchange="handleFileUpload(this)" />
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Or paste delivery dates directly:</div>
+              <textarea class="input" id="paste-dates" rows="6"
+                placeholder="Paste dates here, one per line or comma separated&#10;Example:&#10;2026-04-01&#10;2026-04-15&#10;2026-05-01"
+                style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div class="filter-row" style="margin-bottom:12px;">
+              <div class="field" style="flex:1;">
+                <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Vendor</label>
+                <select class="input" id="upload-vendor" style="width:100%;">
+                  <option value="">Select vendor</option>
+                </select>
+              </div>
+              <div class="field" style="flex:1;">
+                <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Frequency</label>
+                <select class="input" id="upload-freq">
+                  <option value="biweekly">Biweekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="processPastedDates()">Process &amp; Schedule Deliveries</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Generate Delivery Calendar</div></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+              Generate an optimized delivery schedule based on household allotments and vendor routes.
+            </div>
+            <div class="filter-row" style="margin-bottom:12px;flex-direction:column;align-items:stretch;gap:10px;">
+              <div class="field">
+                <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Start Date</label>
+                <input class="input" id="gen-start" type="date" />
+              </div>
+              <div class="field">
+                <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">End Date</label>
+                <input class="input" id="gen-end" type="date" />
+              </div>
+              <div class="field">
+                <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Vendor</label>
+                <select class="input" id="gen-vendor">
+                  <option value="">All Vendors</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-green" onclick="generateCalendar()">Generate Calendar</button>
+            <div id="gen-result" style="margin-top:12px;"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><div class="card-title">Upload History</div></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--muted);">No uploads recorded yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = '';
+  let currentYear  = new Date().getFullYear();
+  let currentMonth = new Date().getMonth();
+  let allDeliveries = [];
+  let allParticipants = [];
+  let vendors = [];
+
+  // ── INIT ─────────────────────────────────────────────────
+  async function init() {
+    await Promise.all([loadStats(), loadVendors(), loadParticipants(), loadDeliveries()]);
+    renderCalendar();
+    loadMissed();
+    loadVendorPerformance();
+  }
+
+  // ── TABS ─────────────────────────────────────────────────
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'missed') loadMissed();
+    if (name === 'vendors') loadVendorPerformance();
+  }
+
+  // ── STATS ────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/bw/stats`);
+      const d = await res.json();
+      document.getElementById('s-active').textContent      = d.active || 0;
+      document.getElementById('s-scheduled').textContent   = d.scheduled || 0;
+      document.getElementById('s-delivered').textContent   = d.delivered || 0;
+      document.getElementById('s-missed').textContent      = d.missed || 0;
+      document.getElementById('s-disputed').textContent    = d.disputed || 0;
+      document.getElementById('nav-active').textContent    = d.active || 0;
+      document.getElementById('nav-deliveries').textContent= d.scheduled || 0;
+      document.getElementById('nav-missed').textContent    = d.missed || 0;
+      const total = (d.delivered || 0) + (d.missed || 0);
+      const rate  = total > 0 ? Math.round((d.missed / total) * 100) : 0;
+      document.getElementById('s-missrate').textContent = rate + '%';
+    } catch(e) { console.error(e); }
+  }
+
+  // ── VENDORS ──────────────────────────────────────────────
+  async function loadVendors() {
+    try {
+      const res = await fetch(`${API}/api/bw/vendors`);
+      vendors = await res.json();
+      ['cal-vendor-filter','p-vendor-filter','miss-vendor-filter',
+       'miss-vendor','upload-vendor','gen-vendor'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const extra = el.options[0].outerHTML;
+        el.innerHTML = extra + vendors.map(v =>
+          `<option value="${v.vendor_id}">${v.vendor_name}</option>`
+        ).join('');
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  // ── PARTICIPANTS ──────────────────────────────────────────
+  async function loadParticipants() {
+    try {
+      const res = await fetch(`${API}/api/bw/participants`);
+      allParticipants = await res.json();
+      renderParticipantTable(allParticipants);
+    } catch(e) {
+      document.getElementById('participant-table').innerHTML = `<div class="empty">Error loading participants</div>`;
+    }
+  }
+
+  function filterParticipants() {
+    const q       = document.getElementById('p-search').value.toLowerCase();
+    const vendor  = document.getElementById('p-vendor-filter').value;
+    const county  = document.getElementById('p-county-filter').value;
+    const filtered = allParticipants.filter(p => {
+      const matchQ = !q || p.pid?.toLowerCase().includes(q) ||
+                     p.first_name?.toLowerCase().includes(q) ||
+                     p.last_name?.toLowerCase().includes(q) ||
+                     p.apn_number?.includes(q);
+      const matchV = !vendor || String(p.vendor_id) === vendor;
+      const matchC = !county || p.county_name === county;
+      return matchQ && matchV && matchC;
+    });
+    renderParticipantTable(filtered);
+  }
+
+  function renderParticipantTable(data) {
+    const wrap = document.getElementById('participant-table');
+    if (!data.length) {
+      wrap.innerHTML = '<div class="empty">No participants found</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>PID</th><th>Name</th><th>County</th><th>Household</th>
+          <th>Allotment</th><th>Vendor</th><th>Last Delivery</th>
+          <th>Next Delivery</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${data.map(p => `
+            <tr class="clickable">
+              <td class="pid-cell">${p.pid}</td>
+              <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div>
+                  <div style="font-size:11px;color:var(--muted);">${p.apn_number || '—'}</div></td>
+              <td style="font-size:12px;">${p.county_name || '—'}</td>
+              <td style="text-align:center;">${p.household_size || '—'}</td>
+              <td class="mono">${allotment(p.household_size)} gal</td>
+              <td style="font-size:12px;">${p.vendor_name || '—'}</td>
+              <td style="font-size:12px;">${formatDate(p.last_delivery) || '—'}
+                ${p.last_status ? `<br><span class="pill pill-${p.last_status}">${p.last_status}</span>` : ''}</td>
+              <td style="font-size:12px;">${formatDate(p.next_delivery) || '—'}</td>
+              <td><span class="pill pill-${p.status_name?.toLowerCase()}">${p.status_name || '—'}</span></td>
+              <td>
+                <button class="btn btn-red btn-sm" onclick="quickLogMiss('${p.pid}','${p.program_specific_id}')">
+                  Miss
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function allotment(hh) {
+    if (!hh) return '—';
+    if (hh <= 2) return 20;
+    if (hh <= 4) return 40;
+    if (hh <= 6) return 50;
+    return 60;
+  }
+
+  // ── DELIVERIES FOR CALENDAR ───────────────────────────────
+  async function loadDeliveries() {
+    try {
+      const res = await fetch(`${API}/api/bw/deliveries?year=${currentYear}&month=${currentMonth + 1}`);
+      allDeliveries = await res.json();
+    } catch(e) { allDeliveries = []; }
+  }
+
+  // ── CALENDAR ─────────────────────────────────────────────
+  function renderCalendar() {
+    const label = document.getElementById('cal-month-label');
+    const months = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+    label.textContent = `${months[currentMonth]} ${currentYear}`;
+
+    // Headers
+    const headers = document.getElementById('cal-headers');
+    headers.innerHTML = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+      .map(d => `<div class="cal-day-header">${d}</div>`).join('');
+
+    const vendorFilter = document.getElementById('cal-vendor-filter').value;
+    const countyFilter = document.getElementById('cal-county-filter').value;
+
+    const filtered = allDeliveries.filter(d => {
+      const matchV = !vendorFilter || String(d.vendor_id) === vendorFilter;
+      const matchC = !countyFilter || d.county_name === countyFilter;
+      return matchV && matchC;
+    });
+
+    // Group by date
+    const byDate = {};
+    filtered.forEach(d => {
+      const key = d.scheduled_date?.split('T')[0];
+      if (!key) return;
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(d);
+    });
+
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const today = new Date().toISOString().split('T')[0];
+
+    const grid = document.getElementById('cal-grid');
+    let html = '';
+
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="cal-day empty"></div>';
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = dateStr === today;
+      const events = byDate[dateStr] || [];
+
+      const statusCounts = events.reduce((a, e) => {
+        a[e.delivery_status] = (a[e.delivery_status] || 0) + 1;
+        return a;
+      }, {});
+
+      const showEvents = events.slice(0, 3);
+      const extra = events.length - 3;
+
+      html += `
+        <div class="cal-day${isToday ? ' today' : ''}" onclick="showDayDetail('${dateStr}', ${JSON.stringify(events).replace(/"/g, '&quot;')})">
+          <div class="cal-day-num">${d}</div>
+          ${showEvents.map(e => `
+            <div class="cal-event ${e.delivery_status}" title="${e.last_name}, ${e.first_name}">
+              ${e.delivery_status === 'missed' ? '⚠' : e.delivery_status === 'delivered' ? '✓' : '•'}
+              ${e.last_name || '?'}
+            </div>
+          `).join('')}
+          ${extra > 0 ? `<div class="cal-more">+${extra} more</div>` : ''}
+        </div>
+      `;
+    }
+
+    grid.innerHTML = html;
+  }
+
+  function showDayDetail(dateStr, events) {
+    const detail = document.getElementById('day-detail');
+    const title  = document.getElementById('day-detail-title');
+    const body   = document.getElementById('day-detail-body');
+    detail.style.display = 'block';
+    title.textContent = `Deliveries for ${formatDate(dateStr)} (${events.length} total)`;
+
+    if (!events.length) {
+      body.innerHTML = '<div class="empty">No deliveries scheduled this day</div>';
+      return;
+    }
+
+    const counts = events.reduce((a, e) => { a[e.delivery_status] = (a[e.delivery_status]||0)+1; return a; }, {});
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        ${Object.entries(counts).map(([s,c]) =>
+          `<span class="pill pill-${s}">${c} ${s}</span>`
+        ).join('')}
+      </div>
+      <table style="width:100%;">
+        <thead><tr>
+          <th>PID</th><th>Name</th><th>County</th><th>Vendor</th><th>Status</th><th>Notes</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${events.map(e => `
+            <tr>
+              <td class="pid-cell">${e.pid || '—'}</td>
+              <td>${e.last_name || '—'}, ${e.first_name || ''}</td>
+              <td style="font-size:12px;">${e.county_name || '—'}</td>
+              <td style="font-size:12px;">${e.vendor_name || '—'}</td>
+              <td><span class="pill pill-${e.delivery_status}">${e.delivery_status}</span></td>
+              <td style="font-size:12px;color:var(--muted);">${e.missed_reason || ''}</td>
+              <td>
+                ${e.delivery_status === 'scheduled' ?
+                  `<button class="btn btn-red btn-sm" onclick="quickLogMiss('${e.pid}','')">Miss</button>` : ''}
+                ${e.delivery_status === 'missed' ?
+                  `<button class="btn btn-yellow btn-sm" onclick="draftEmailForMiss('${e.vendor_name}','${dateStr}','${e.missed_reason||''}')">Email</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function changeMonth(dir) {
+    currentMonth += dir;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+    await loadDeliveries();
+    renderCalendar();
+  }
+
+  function goToday() {
+    currentYear  = new Date().getFullYear();
+    currentMonth = new Date().getMonth();
+    loadDeliveries().then(renderCalendar);
+  }
+
+  // ── MISSED ───────────────────────────────────────────────
+  async function loadMissed() {
+    try {
+      const vendor = document.getElementById('miss-vendor-filter').value;
+      const period = document.getElementById('miss-period-filter').value;
+      const res = await fetch(`${API}/api/bw/missed?vendor=${vendor}&days=${period === 'all' ? 9999 : period}`);
+      const data = await res.json();
+      renderMissedTable(data);
+      renderMissPatterns(data);
+    } catch(e) {}
+  }
+
+  function renderMissedTable(data) {
+    const wrap = document.getElementById('missed-table');
+    if (!data.length) {
+      wrap.innerHTML = '<div class="empty">No missed deliveries in this period</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Date</th><th>PID</th><th>Name</th><th>County</th><th>Vendor</th><th>Reason</th><th>Reported By</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${data.map(d => `
+            <tr>
+              <td class="mono">${formatDate(d.scheduled_date)}</td>
+              <td class="pid-cell">${d.pid || '—'}</td>
+              <td style="font-size:13px;">${d.last_name || '—'}, ${d.first_name || ''}</td>
+              <td style="font-size:12px;">${d.county_name || '—'}</td>
+              <td style="font-size:12px;">${d.vendor_name || '—'}</td>
+              <td style="font-size:12px;color:var(--muted);">${d.missed_reason || '—'}</td>
+              <td><span class="pill pill-${d.reported_by === 'participant' ? 'active' : 'scheduled'}">${d.reported_by || '—'}</span></td>
+              <td>
+                <button class="btn btn-yellow btn-sm" onclick="draftEmailForMiss('${d.vendor_name}','${d.scheduled_date?.split('T')[0]}','${d.missed_reason||''}')">
+                  Email
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderMissPatterns(data) {
+    const wrap = document.getElementById('miss-patterns');
+    if (!data.length) {
+      wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);">No missed deliveries to analyze</div>';
+      return;
+    }
+
+    const byVendor = {};
+    const byCounty = {};
+    data.forEach(d => {
+      byVendor[d.vendor_name] = (byVendor[d.vendor_name] || 0) + 1;
+      byCounty[d.county_name] = (byCounty[d.county_name] || 0) + 1;
+    });
+
+    const topVendor = Object.entries(byVendor).sort((a,b) => b[1]-a[1])[0];
+    const topCounty = Object.entries(byCounty).sort((a,b) => b[1]-a[1])[0];
+
+    wrap.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">By Vendor</div>
+        ${Object.entries(byVendor).sort((a,b)=>b[1]-a[1]).map(([v,c]) => `
+          <div class="vendor-bar-wrap">
+            <div class="vendor-bar-label">
+              <span style="font-size:12px;">${v}</span>
+              <span style="color:var(--red);font-family:'IBM Plex Mono',monospace;">${c}</span>
+            </div>
+            <div class="vendor-bar-track">
+              <div class="vendor-bar-fill" style="width:${Math.round((c/data.length)*100)}%;background:var(--red);"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">By County</div>
+        ${Object.entries(byCounty).sort((a,b)=>b[1]-a[1]).map(([c,n]) => `
+          <div class="vendor-bar-wrap">
+            <div class="vendor-bar-label">
+              <span style="font-size:12px;">${c}</span>
+              <span style="color:var(--yellow);font-family:'IBM Plex Mono',monospace;">${n}</span>
+            </div>
+            <div class="vendor-bar-track">
+              <div class="vendor-bar-fill" style="width:${Math.round((n/data.length)*100)}%;background:var(--yellow);"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // ── VENDOR PERFORMANCE ────────────────────────────────────
+  async function loadVendorPerformance() {
+    try {
+      const res = await fetch(`${API}/api/bw/vendor-performance`);
+      const data = await res.json();
+      renderVendorBars(data);
+      renderVendorTable(data);
+      renderTrend();
+    } catch(e) {}
+  }
+
+  function renderVendorBars(data) {
+    const wrap = document.getElementById('vendor-bars');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No delivery data</div>'; return; }
+    wrap.innerHTML = data.map(v => {
+      const rate = v.total > 0 ? Math.round((v.delivered / v.total) * 100) : 0;
+      const color = rate >= 90 ? 'var(--green)' : rate >= 75 ? 'var(--yellow)' : 'var(--red)';
+      return `
+        <div class="vendor-bar-wrap">
+          <div class="vendor-bar-label">
+            <span style="font-size:13px;font-weight:500;">${v.vendor_name}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;color:${color};">${rate}%</span>
+          </div>
+          <div class="vendor-bar-track" style="height:10px;">
+            <div class="vendor-bar-fill" style="width:${rate}%;background:${color};"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">
+            ${v.delivered} delivered · ${v.missed} missed · ${v.total} total
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderVendorTable(data) {
+    const wrap = document.getElementById('vendor-table');
+    if (!data.length) { wrap.innerHTML = '<div class="empty">No data</div>'; return; }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Vendor</th><th>Total</th><th>Delivered</th><th>Missed</th><th>Rate</th></tr></thead>
+        <tbody>
+          ${data.map(v => {
+            const rate = v.total > 0 ? Math.round((v.delivered/v.total)*100) : 0;
+            const color = rate >= 90 ? 'var(--green)' : rate >= 75 ? 'var(--yellow)' : 'var(--red)';
+            return `
+              <tr>
+                <td style="font-size:13px;">${v.vendor_name}</td>
+                <td class="mono">${v.total}</td>
+                <td class="mono" style="color:var(--green);">${v.delivered}</td>
+                <td class="mono" style="color:var(--red);">${v.missed}</td>
+                <td class="mono" style="color:${color};">${rate}%</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderTrend() {
+    const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+    const mockData = [3, 5, 2, 8, 4, 6]; // placeholder until real trend endpoint
+    const max = Math.max(...mockData);
+    const bars = document.getElementById('trend-bars');
+    const labels = document.getElementById('trend-labels');
+    bars.innerHTML = mockData.map((v, i) => `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="font-size:10px;color:var(--red);font-family:'IBM Plex Mono',monospace;">${v}</div>
+        <div style="width:100%;background:var(--red);opacity:0.7;border-radius:3px 3px 0 0;height:${Math.round((v/max)*80)}px;"></div>
+      </div>
+    `).join('');
+    labels.innerHTML = months.map(m =>
+      `<div style="flex:1;text-align:center;font-size:11px;color:var(--muted);">${m}</div>`
+    ).join('');
+  }
+
+  // ── MISSED DELIVERY FORM ──────────────────────────────────
+  function showMissForm() {
+    document.getElementById('miss-form').classList.add('visible');
+    document.getElementById('miss-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  function quickLogMiss(pid, progId) {
+    showTab_direct('participants');
+    showMissForm();
+    document.getElementById('miss-pid').value = pid;
+    document.getElementById('miss-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  function showTab_direct(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.querySelectorAll('.tab')[1].classList.add('active');
+  }
+
+  async function submitMiss() {
+    const payload = {
+      pid:            document.getElementById('miss-pid').value.trim(),
+      scheduled_date: document.getElementById('miss-date').value,
+      reported_by:    document.getElementById('miss-reporter').value,
+      vendor_id:      document.getElementById('miss-vendor').value || null,
+      missed_reason:  document.getElementById('miss-reason').value,
+      notes:          document.getElementById('miss-notes').value,
+    };
+    if (!payload.pid || !payload.scheduled_date) {
+      alert('PID and scheduled date are required.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/api/bw/log-miss`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert(`Missed delivery logged for ${payload.pid}`);
+      document.getElementById('miss-form').classList.remove('visible');
+      await Promise.all([loadStats(), loadDeliveries(), loadMissed()]);
+      renderCalendar();
+    } catch(e) {
+      alert('Error logging miss: ' + e.message);
+    }
+  }
+
+  function generateEmailDraft() {
+    const vendor = vendors.find(v => String(v.vendor_id) === document.getElementById('miss-vendor').value);
+    const vendorName = vendor?.vendor_name || 'Vendor';
+    const date = document.getElementById('miss-date').value;
+    const reason = document.getElementById('miss-reason').value;
+    const pid = document.getElementById('miss-pid').value;
+    draftEmailForMiss(vendorName, date, reason, pid);
+  }
+
+  function draftEmailForMiss(vendorName, date, reason, pid='') {
+    const draft = document.getElementById('email-draft');
+    const subject = document.getElementById('email-subject');
+    const body = document.getElementById('email-body');
+    draft.classList.add('visible');
+    subject.textContent = `Subject: Missed Delivery — ${formatDate(date)}${pid ? ' — ' + pid : ''}`;
+    body.textContent = `Dear ${vendorName} Team,
+
+We are writing to report a missed bottled water delivery scheduled for ${formatDate(date)}${pid ? ' for participant ' + pid : ''}.
+
+Reason reported: ${reason || 'Not specified'}
+
+This participant depends on this delivery for their household water supply. Please confirm receipt of this notice and advise on the earliest available reschedule date.
+
+If there are route or capacity issues affecting multiple deliveries on this date, please send us a full list of affected participants so we can follow up accordingly.
+
+Thank you for your prompt attention to this matter.
+
+Self-Help Enterprises
+Water Assistance Programs
+(559) 651-1000`;
+  }
+
+  function copyEmail() {
+    const text = document.getElementById('email-subject').textContent + '\n\n' +
+                 document.getElementById('email-body').textContent;
+    navigator.clipboard.writeText(text).then(() => alert('Email copied to clipboard'));
+  }
+
+  // ── UPLOAD / GENERATE ────────────────────────────────────
+  function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    alert(`File "${file.name}" selected. PDF parsing coming in next update — use paste mode for now.`);
+  }
+
+  function processPastedDates() {
+    const raw = document.getElementById('paste-dates').value.trim();
+    const vendorId = document.getElementById('upload-vendor').value;
+    if (!raw || !vendorId) {
+      alert('Enter dates and select a vendor first.');
+      return;
+    }
+    const dates = raw.split(/[\n,]+/).map(d => d.trim()).filter(d => d.match(/\d{4}-\d{2}-\d{2}/));
+    if (!dates.length) {
+      alert('No valid dates found. Use YYYY-MM-DD format.');
+      return;
+    }
+    alert(`Found ${dates.length} dates. Scheduling deliveries... (endpoint coming next update)`);
+  }
+
+  function generateCalendar() {
+    const start = document.getElementById('gen-start').value;
+    const end   = document.getElementById('gen-end').value;
+    if (!start || !end) { alert('Select start and end dates.'); return; }
+    document.getElementById('gen-result').innerHTML = `
+      <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;font-size:13px;color:var(--green);">
+        ✓ Calendar generation ready — endpoint coming in next build.
+        <br><span style="color:var(--muted);">Will generate biweekly schedules for all active BW participants based on allotment rules.</span>
+      </div>
+    `;
+  }
+
+  // ── HELPERS ──────────────────────────────────────────────
+  function formatDate(d) {
+    if (!d) return null;
+    return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  init();
+</script>
+</body>
+</html>

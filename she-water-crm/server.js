@@ -286,7 +286,7 @@ app.post('/api/intake', async (req, res) => {
 
     let apnId = location.existing_apn_id;
     if (!apnId) {
-      const propResult = await client.query(`INSERT INTO property (active_flag) VALUES (TRUE) RETURNING property_id`);
+      const propResult = await client.query(`INSERT INTO property DEFAULT VALUES RETURNING property_id`);
       const apnResult = await client.query(`
         INSERT INTO apn (property_id,apn_number,county_id,gsa_zone,mailing_address,region_assignment_method)
         VALUES ($1,$2,$3,$4,$5,'manual_override') RETURNING apn_id
@@ -353,4 +353,190 @@ app.post('/api/intake', async (req, res) => {
     console.error('Intake error:', err);
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
+});
+
+// ── BOTTLED WATER ENDPOINTS ─────────────────────────────────
+
+app.get('/api/bw/stats', async (req, res) => {
+  try {
+    const now = new Date();
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const lastDay  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()}`;
+    const result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM program_enrollment pe
+         JOIN program pr ON pr.program_id = pe.program_id
+         WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL) AS active,
+        (SELECT COUNT(*) FROM delivery d
+         JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+         JOIN program pr ON pr.program_id = pe.program_id
+         WHERE pr.program_code = 'BW'
+         AND d.scheduled_date BETWEEN $1 AND $2) AS scheduled,
+        (SELECT COUNT(*) FROM delivery d
+         JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+         JOIN program pr ON pr.program_id = pe.program_id
+         WHERE pr.program_code = 'BW' AND d.delivery_status = 'delivered'
+         AND d.scheduled_date BETWEEN $1 AND $2) AS delivered,
+        (SELECT COUNT(*) FROM delivery d
+         JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+         JOIN program pr ON pr.program_id = pe.program_id
+         WHERE pr.program_code = 'BW' AND d.delivery_status = 'missed'
+         AND d.scheduled_date BETWEEN $1 AND $2) AS missed,
+        (SELECT COUNT(*) FROM delivery d
+         JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+         JOIN program pr ON pr.program_id = pe.program_id
+         WHERE pr.program_code = 'BW' AND d.delivery_status = 'disputed'
+         AND d.scheduled_date BETWEEN $1 AND $2) AS disputed
+    `, [firstDay, lastDay]);
+    res.json(result.rows[0]);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/bw/vendors', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT v.vendor_id, v.vendor_name FROM vendor v
+      JOIN vendor_type vt ON vt.vendor_type_id = v.vendor_type_id
+      WHERE vt.type_name = 'Bottled Water Delivery' AND v.active_flag = TRUE
+      ORDER BY v.vendor_name
+    `);
+    res.json(result.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/bw/participants', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.pid, p.first_name, p.last_name,
+        pe.program_specific_id, pe.enrollment_id,
+        es.status_name, ps.household_size,
+        a.apn_number, c.county_name,
+        s.structure_type, s.unit_number,
+        v.vendor_id, v.vendor_name,
+        (SELECT d.scheduled_date FROM delivery d
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
+        (SELECT d.delivery_status FROM delivery d
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS last_status,
+        (SELECT d.scheduled_date FROM delivery d
+         WHERE d.enrollment_id = pe.enrollment_id
+         AND d.scheduled_date >= CURRENT_DATE
+         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery
+      FROM program_enrollment pe
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      JOIN enrollment_status es ON es.status_id = pe.status_id
+      JOIN structure s ON s.structure_id = pe.structure_id
+      JOIN apn a ON a.apn_id = s.apn_id
+      JOIN county c ON c.county_id = a.county_id
+      JOIN person_structure pstr ON pstr.pid = p.pid AND pstr.end_date IS NULL
+      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
+      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
+      WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
+      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
+               pe.enrollment_id, es.status_name, ps.household_size,
+               a.apn_number, c.county_name, s.structure_type, s.unit_number,
+               v.vendor_id, v.vendor_name
+      ORDER BY p.last_name, p.first_name
+    `);
+    res.json(result.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/bw/deliveries', async (req, res) => {
+  const { year, month } = req.query;
+  try {
+    const firstDay = `${year}-${String(month).padStart(2,'0')}-01`;
+    const lastDay  = `${year}-${String(month).padStart(2,'0')}-${new Date(year, month, 0).getDate()}`;
+    const result = await pool.query(`
+      SELECT d.delivery_id, d.scheduled_date, d.delivered_date,
+             d.delivery_status, d.missed_reason, d.reported_by,
+             d.allotment_units, d.vendor_id,
+             p.pid, p.first_name, p.last_name,
+             c.county_name, v.vendor_name
+      FROM delivery d
+      JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      JOIN structure s ON s.structure_id = pe.structure_id
+      JOIN apn a ON a.apn_id = s.apn_id
+      JOIN county c ON c.county_id = a.county_id
+      LEFT JOIN vendor v ON v.vendor_id = d.vendor_id
+      WHERE pr.program_code = 'BW'
+      AND d.scheduled_date BETWEEN $1 AND $2
+      ORDER BY d.scheduled_date, p.last_name
+    `, [firstDay, lastDay]);
+    res.json(result.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/bw/missed', async (req, res) => {
+  const { vendor, days } = req.query;
+  try {
+    const daysBack = parseInt(days) || 30;
+    const vendorClause = vendor ? `AND d.vendor_id = ${parseInt(vendor)}` : '';
+    const result = await pool.query(`
+      SELECT d.delivery_id, d.scheduled_date, d.missed_reason, d.reported_by,
+             p.pid, p.first_name, p.last_name,
+             c.county_name, v.vendor_name, v.vendor_id
+      FROM delivery d
+      JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      JOIN structure s ON s.structure_id = pe.structure_id
+      JOIN apn a ON a.apn_id = s.apn_id
+      JOIN county c ON c.county_id = a.county_id
+      LEFT JOIN vendor v ON v.vendor_id = d.vendor_id
+      WHERE pr.program_code = 'BW'
+      AND d.delivery_status = 'missed'
+      AND d.scheduled_date >= CURRENT_DATE - INTERVAL '${daysBack} days'
+      ${vendorClause}
+      ORDER BY d.scheduled_date DESC
+    `);
+    res.json(result.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/bw/vendor-performance', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        v.vendor_id, v.vendor_name,
+        COUNT(*) AS total,
+        SUM(CASE WHEN d.delivery_status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
+        SUM(CASE WHEN d.delivery_status = 'missed'    THEN 1 ELSE 0 END) AS missed,
+        SUM(CASE WHEN d.delivery_status = 'disputed'  THEN 1 ELSE 0 END) AS disputed
+      FROM delivery d
+      JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN vendor v ON v.vendor_id = d.vendor_id
+      WHERE pr.program_code = 'BW'
+      GROUP BY v.vendor_id, v.vendor_name
+      ORDER BY total DESC
+    `);
+    res.json(result.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/bw/log-miss', async (req, res) => {
+  const { pid, scheduled_date, reported_by, vendor_id, missed_reason, notes } = req.body;
+  try {
+    const enroll = await pool.query(`
+      SELECT pe.enrollment_id FROM program_enrollment pe
+      JOIN program pr ON pr.program_id = pe.program_id
+      WHERE pe.pid = $1 AND pr.program_code = 'BW' AND pe.exit_date IS NULL
+      LIMIT 1
+    `, [pid]);
+    if (!enroll.rows.length) {
+      return res.status(404).json({ error: 'No active BW enrollment found for this PID' });
+    }
+    const enrollId = enroll.rows[0].enrollment_id;
+    await pool.query(`
+      INSERT INTO delivery (enrollment_id, vendor_id, scheduled_date, delivery_status, missed_reason, reported_by)
+      VALUES ($1, $2, $3, 'missed', $4, $5)
+    `, [enrollId, vendor_id || null, scheduled_date, missed_reason, reported_by]);
+    res.json({ success: true });
+  } catch(err) { res.status(500).json({ error: err.message }); }
 });
