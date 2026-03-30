@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHE Water Assistance CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c27;
+    --border:   #252a38;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #3b82f6;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --purple:   #a78bfa;
+    --cyan:     #22d3ee;
+    --bw:       #3b82f6;
+    --tw:       #22c55e;
+    --wq:       #f59e0b;
+    --ww:       #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-link {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { color: var(--text); background: var(--border); }
+  .nav-link.active { color: var(--text); background: var(--border); }
+  .nav-spacer { flex: 1; }
+  .nav-region {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* DASHBOARD */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stat-card.bw .stat-value { color: var(--bw); }
+  .stat-card.tw .stat-value { color: var(--tw); }
+  .stat-card.wq .stat-value { color: var(--wq); }
+  .stat-card.ww .stat-value { color: var(--ww); }
+
+  /* SEARCH */
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .search-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  .btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .result-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 11px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: rgba(255,255,255,0.03); }
+  .pid-cell {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+  }
+  .lang-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .lang-es { background: rgba(167,139,250,0.15); color: var(--purple); }
+  .lang-en { background: rgba(34,211,238,0.1); color: var(--cyan); }
+  .program-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-right: 3px;
+  }
+  .badge-BW { background: rgba(59,130,246,0.2); color: var(--bw); }
+  .badge-TW { background: rgba(34,197,94,0.2); color: var(--tw); }
+  .badge-WQ { background: rgba(245,158,11,0.2); color: var(--wq); }
+  .badge-WW { background: rgba(167,139,250,0.2); color: var(--ww); }
+  .interp-flag {
+    font-size: 11px;
+    color: var(--yellow);
+  }
+
+  /* PARTICIPANT PROFILE */
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .back-btn:hover { color: var(--text); }
+
+  .profile-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: start;
+  }
+  .profile-name {
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .profile-pid {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+  .profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .meta-item { }
+  .meta-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .meta-value { font-size: 14px; }
+  .profile-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .section-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+  .card-body { padding: 16px; }
+
+  .enrollment-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .enrollment-row:last-child { border-bottom: none; }
+  .enroll-prog { min-width: 36px; }
+  .enroll-id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+  }
+  .enroll-date { font-size: 12px; color: var(--muted); }
+  .status-pill {
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .status-Active { background: rgba(34,197,94,0.15); color: var(--green); }
+  .status-Inactive { background: rgba(100,116,139,0.2); color: var(--muted); }
+  .status-Closed { background: rgba(239,68,68,0.15); color: var(--red); }
+  .status-Waitlist { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .status-Pending { background: rgba(167,139,250,0.15); color: var(--purple); }
+  .status-open { background: rgba(34,197,94,0.15); color: var(--green); }
+  .status-closed { background: rgba(100,116,139,0.2); color: var(--muted); }
+  .status-pending_approval { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+  .history-row {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-addr { font-weight: 500; margin-bottom: 3px; }
+  .history-dates { font-size: 12px; color: var(--muted); }
+
+  .case-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .case-row:last-child { border-bottom: none; }
+  .case-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .case-id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .case-notes { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* REGION LOOKUP */
+  .lookup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .lookup-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .lookup-region-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 12px;
+  }
+  .lookup-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+
+  .full-width { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-link" onclick="showPage('search')">Participants</button>
+    <button class="nav-link" onclick="showPage('lookup')">Region Lookup</button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-region">San Joaquin Valley · 10 Counties</div>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div style="margin-bottom:20px;">
+    <div style="font-size:20px;font-weight:600;margin-bottom:4px;">Program Overview</div>
+    <div style="font-size:13px;color:var(--muted);">Live data from Azure SQL backend</div>
+  </div>
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat-card"><div class="stat-label">Total Participants</div><div class="stat-value" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Active Enrollments</div><div class="stat-value" id="stat-active">—</div></div>
+    <div class="stat-card bw"><div class="stat-label">Bottled Water</div><div class="stat-value" id="stat-bw">—</div></div>
+    <div class="stat-card tw"><div class="stat-label">Tank Water</div><div class="stat-value" id="stat-tw">—</div></div>
+    <div class="stat-card wq"><div class="stat-label">Water Quality</div><div class="stat-value" id="stat-wq">—</div></div>
+    <div class="stat-card ww"><div class="stat-label">Water Well</div><div class="stat-value" id="stat-ww">—</div></div>
+    <div class="stat-card"><div class="stat-label">Open Cases</div><div class="stat-value" id="stat-open">—</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Approval</div><div class="stat-value" id="stat-pending">—</div></div>
+  </div>
+  <div style="margin-top:12px;">
+    <button class="btn btn-primary" onclick="showPage('search')">View All Participants →</button>
+  </div>
+</div>
+
+<!-- PARTICIPANTS SEARCH -->
+<div class="page" id="page-search">
+  <div style="font-size:20px;font-weight:600;margin-bottom:16px;">Participants</div>
+  <div class="search-bar">
+    <input
+      class="search-input"
+      id="search-input"
+      placeholder="Search by name, PID, phone, or APN..."
+      oninput="debounceSearch()"
+      autocomplete="off"
+    />
+    <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    <button class="btn btn-ghost" onclick="clearSearch()">Clear</button>
+    <button class="btn btn-primary" style="background:var(--green);" onclick="window.location.href='/intake.html'">+ New Participant</button>
+  </div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Participant Records</span>
+      <span class="result-count" id="result-count">Loading...</span>
+    </div>
+    <div id="participant-table-body">
+      <div class="loading">Loading participants...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPANT PROFILE -->
+<div class="page" id="page-profile">
+  <button class="back-btn" onclick="showPage('search')">← Back to Participants</button>
+  <div id="profile-content">
+    <div class="loading">Loading participant...</div>
+  </div>
+</div>
+
+<!-- REGION LOOKUP -->
+<div class="page" id="page-lookup">
+  <div style="font-size:20px;font-weight:600;margin-bottom:16px;">Region Lookup</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Enter an APN or address to find the responsible region and caseworkers</div>
+  <div class="lookup-grid">
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">APN Number</div>
+      <input class="search-input" id="lookup-apn" placeholder="e.g. 001-314-86" />
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">County (optional)</div>
+      <input class="search-input" id="lookup-county" placeholder="e.g. Fresno" />
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="doLookup()">Look Up Region</button>
+  <div id="lookup-result"></div>
+</div>
+
+<script>
+  const API = '';
+  let searchTimer = null;
+  let allParticipants = [];
+
+  // ── PAGE NAVIGATION ──────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    const links = { dashboard: 0, search: 1, lookup: 2 };
+    const navLinks = document.querySelectorAll('.nav-link');
+    if (links[name] !== undefined) navLinks[links[name]].classList.add('active');
+    if (name === 'dashboard') loadStats();
+    if (name === 'search' && allParticipants.length === 0) doSearch();
+  }
+
+  // ── STATS ────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/stats`);
+      const d = await res.json();
+      document.getElementById('stat-total').textContent = d.total_participants;
+      document.getElementById('stat-active').textContent = d.active_enrollments;
+      document.getElementById('stat-bw').textContent = d.active_bw;
+      document.getElementById('stat-tw').textContent = d.active_tw;
+      document.getElementById('stat-wq').textContent = d.active_wq;
+      document.getElementById('stat-ww').textContent = d.active_ww;
+      document.getElementById('stat-open').textContent = d.open_cases;
+      document.getElementById('stat-pending').textContent = d.pending_cases;
+    } catch (e) {
+      console.error('Stats error:', e);
+    }
+  }
+
+  // ── SEARCH ───────────────────────────────────────────────
+  function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 300);
+  }
+
+  function clearSearch() {
+    document.getElementById('search-input').value = '';
+    doSearch();
+  }
+
+  async function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    const body = document.getElementById('participant-table-body');
+    body.innerHTML = '<div class="loading">Searching...</div>';
+    try {
+      const res = await fetch(`${API}/api/participants?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      allParticipants = data;
+      renderParticipantTable(data);
+    } catch (e) {
+      body.innerHTML = `<div class="empty">Error loading participants: ${e.message}</div>`;
+    }
+  }
+
+  function renderParticipantTable(data) {
+    const count = document.getElementById('result-count');
+    const body = document.getElementById('participant-table-body');
+    count.textContent = `${data.length} result${data.length !== 1 ? 's' : ''}`;
+    if (!data.length) {
+      body.innerHTML = '<div class="empty">No participants found</div>';
+      return;
+    }
+    body.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>PID</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Language</th>
+            <th>APN</th>
+            <th>County</th>
+            <th>Structure</th>
+            <th>Household</th>
+            <th>Programs</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(p => `
+            <tr class="clickable" onclick="loadProfile('${p.pid}')">
+              <td class="pid-cell">${p.pid}</td>
+              <td>
+                <div style="font-weight:500;">${p.last_name}, ${p.first_name}</div>
+                ${p.interpreter_needed ? '<div class="interp-flag">⚑ Interpreter</div>' : ''}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${p.phone_primary || '—'}</td>
+              <td>
+                <span class="lang-badge ${p.preferred_language === 'Spanish' ? 'lang-es' : 'lang-en'}">
+                  ${p.preferred_language}
+                </span>
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${p.apn_number || '—'}</td>
+              <td>${p.county_name || '—'}</td>
+              <td style="font-size:12px;color:var(--muted);">${formatStructure(p.structure_type, p.unit_number)}</td>
+              <td style="text-align:center;">${p.household_size || '—'}</td>
+              <td>${renderPrograms(p.programs)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function formatStructure(type, unit) {
+    if (!type) return '—';
+    const labels = {
+      single_family: 'Single Family',
+      mobile_home: 'Mobile Home',
+      apartment: 'Apartment',
+      agricultural_unit: 'Ag Housing',
+    };
+    const label = labels[type] || type;
+    return unit ? `${label} · ${unit}` : label;
+  }
+
+  function renderPrograms(programs) {
+    if (!programs || programs === '—') return '<span style="color:var(--muted);font-size:12px;">None</span>';
+    return programs.split(', ').map(p =>
+      `<span class="program-badge badge-${p.trim()}">${p.trim()}</span>`
+    ).join('');
+  }
+
+  // ── PARTICIPANT PROFILE ──────────────────────────────────
+  async function loadProfile(pid) {
+    showPage('profile');
+    const content = document.getElementById('profile-content');
+    content.innerHTML = '<div class="loading">Loading participant record...</div>';
+    try {
+      const res = await fetch(`${API}/api/participant/${pid}`);
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      renderProfile(d);
+    } catch (e) {
+      content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+    }
+  }
+
+  function renderProfile(d) {
+    const p = d.person;
+    const content = document.getElementById('profile-content');
+    const activeProgs = d.enrollments.filter(e => !e.exit_date);
+
+    content.innerHTML = `
+      <div class="profile-header">
+        <div>
+          <div class="profile-name">${p.first_name} ${p.last_name}</div>
+          <div class="profile-pid">${p.pid}</div>
+          <div class="profile-meta">
+            <div class="meta-item">
+              <div class="meta-label">Phone</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;font-size:13px;">${p.phone_primary || '—'}</div>
+            </div>
+            ${p.phone_secondary ? `
+            <div class="meta-item">
+              <div class="meta-label">Alt Phone</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;font-size:13px;">${p.phone_secondary}</div>
+            </div>` : ''}
+            <div class="meta-item">
+              <div class="meta-label">Language</div>
+              <div class="meta-value">
+                ${p.preferred_language}
+                ${p.interpreter_needed ? ' <span style="color:var(--yellow);font-size:12px;">⚑ Interpreter needed</span>' : ''}
+              </div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Household Size</div>
+              <div class="meta-value">${p.household_size || '—'}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Role</div>
+              <div class="meta-value">${p.role_name || '—'}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Caseworker</div>
+              <div class="meta-value">${p.caseworker_name || '—'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-badges">
+          ${activeProgs.map(e =>
+            `<span class="program-badge badge-${e.program_code}" style="font-size:13px;padding:4px 10px;">${e.program_code}</span>`
+          ).join('')}
+        </div>
+      </div>
+
+      <div class="section-grid">
+
+        <!-- CURRENT LOCATION -->
+        <div class="card">
+          <div class="card-header">Current Location</div>
+          <div class="card-body">
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">APN</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;">${p.apn_number || '—'}</div>
+            </div>
+            ${p.dmpid ? `
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">DMPID</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;color:var(--cyan);">${p.dmpid}</div>
+            </div>` : `
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">DMPID</div>
+              <div class="meta-value" style="color:var(--yellow);font-size:12px;">⚠ Not yet assigned</div>
+            </div>`}
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">County · Region</div>
+              <div class="meta-value">${p.county_name || '—'} · ${p.region_name || 'Unassigned'}</div>
+            </div>
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">Structure</div>
+              <div class="meta-value">${formatStructure(p.structure_type, p.unit_number)}</div>
+            </div>
+            <div class="meta-item" style="margin-bottom:12px;">
+              <div class="meta-label">GSA Zone</div>
+              <div class="meta-value">${p.gsa_zone || '—'}</div>
+            </div>
+            ${p.floodplain_flag ? `
+            <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--red);">
+              ⚠ Floodplain parcel
+            </div>` : ''}
+            ${p.mailing_address ? `
+            <div class="meta-item" style="margin-top:12px;">
+              <div class="meta-label">Mailing Address</div>
+              <div class="meta-value" style="font-size:12px;">${p.mailing_address}</div>
+            </div>` : ''}
+            ${p.structure_lat ? `
+            <div class="meta-item" style="margin-top:12px;">
+              <div class="meta-label">Coordinates</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">${p.structure_lat}, ${p.structure_long}</div>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <!-- PROGRAM ENROLLMENTS -->
+        <div class="card">
+          <div class="card-header">Program Enrollments</div>
+          <div class="card-body" style="padding:0 16px;">
+            ${d.enrollments.length ? d.enrollments.map(e => `
+              <div class="enrollment-row">
+                <div class="enroll-prog">
+                  <span class="program-badge badge-${e.program_code}">${e.program_code}</span>
+                </div>
+                <div style="flex:1;">
+                  <div class="enroll-id">${e.program_specific_id}</div>
+                  <div style="font-size:11px;color:var(--muted);">${e.county_name} · ${formatStructure(e.structure_type, e.unit_number)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <span class="status-pill status-${e.status_name.replace(' ','')}">${e.status_name}</span>
+                  <div class="enroll-date">${formatDate(e.enrollment_date)}${e.exit_date ? ' → ' + formatDate(e.exit_date) : ''}</div>
+                </div>
+              </div>
+            `).join('') : '<div class="empty" style="padding:24px;">No enrollments on record</div>'}
+          </div>
+        </div>
+
+        <!-- CASES -->
+        <div class="card">
+          <div class="card-header">Cases</div>
+          <div class="card-body" style="padding:0 16px;">
+            ${d.cases.length ? d.cases.map(c => `
+              <div class="case-row">
+                <div class="case-top">
+                  <span class="program-badge badge-${c.program_code}">${c.program_code}</span>
+                  <span class="case-id">#${c.case_id}</span>
+                  <span class="status-pill status-${c.case_status}">${c.case_status.replace('_',' ')}</span>
+                  <span style="flex:1;"></span>
+                  <span style="font-size:12px;color:var(--muted);">${formatDate(c.opened_date)}</span>
+                </div>
+                ${c.notes ? `<div class="case-notes">${c.notes}</div>` : ''}
+                ${c.assigned_staff ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Assigned: ${c.assigned_staff}</div>` : ''}
+              </div>
+            `).join('') : '<div class="empty" style="padding:24px;">No cases on record</div>'}
+          </div>
+        </div>
+
+        <!-- ADDRESS HISTORY -->
+        <div class="card">
+          <div class="card-header">Address History</div>
+          <div class="card-body" style="padding:0 16px;">
+            ${d.history.length ? d.history.map(h => `
+              <div class="history-row">
+                <div class="history-addr">
+                  ${formatStructure(h.structure_type, h.unit_number)} · ${h.apn_number}
+                  <span style="font-size:11px;color:var(--muted);margin-left:8px;">${h.county_name}</span>
+                </div>
+                <div class="history-dates">
+                  ${h.role_name} · HH: ${h.household_size} · 
+                  ${formatDate(h.start_date)} → ${h.end_date ? formatDate(h.end_date) : '<span style="color:var(--green);">Current</span>'}
+                </div>
+              </div>
+            `).join('') : '<div class="empty" style="padding:24px;">No history</div>'}
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // ── REGION LOOKUP ────────────────────────────────────────
+  async function doLookup() {
+    const apn = document.getElementById('lookup-apn').value.trim();
+    const county = document.getElementById('lookup-county').value.trim();
+    const result = document.getElementById('lookup-result');
+    if (!apn) { result.innerHTML = '<div class="empty">Enter an APN to look up</div>'; return; }
+    result.innerHTML = '<div class="loading">Looking up...</div>';
+    try {
+      const res = await fetch(`${API}/api/region-lookup?apn=${encodeURIComponent(apn)}&county=${encodeURIComponent(county)}`);
+      const data = await res.json();
+      if (!data.length) {
+        result.innerHTML = '<div class="empty">No matching parcels found</div>';
+        return;
+      }
+      result.innerHTML = data.map(r => `
+        <div class="lookup-result">
+          <div class="lookup-region-name">${r.region_name || 'Region Unassigned'}</div>
+          <div class="lookup-details">
+            <div class="meta-item">
+              <div class="meta-label">APN</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;">${r.apn_number}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">County</div>
+              <div class="meta-value">${r.county_name}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">DMPID</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;">${r.dmpid || '⚠ Not assigned'}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">GSA Zone</div>
+              <div class="meta-value">${r.gsa_zone || '—'}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Region Manager</div>
+              <div class="meta-value">${r.region_manager || '—'}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Manager Phone</div>
+              <div class="meta-value" style="font-family:'IBM Plex Mono',monospace;">${r.manager_phone || '—'}</div>
+            </div>
+            <div class="meta-item" style="grid-column:1/-1;">
+              <div class="meta-label">Caseworkers</div>
+              <div class="meta-value">${Array.isArray(r.caseworkers) ? r.caseworkers.filter(Boolean).join(', ') : '—'}</div>
+            </div>
+          </div>
+          ${r.floodplain_flag ? '<div style="margin-top:12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--red);">⚠ Floodplain parcel</div>' : ''}
+        </div>
+      `).join('');
+    } catch (e) {
+      result.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+    }
+  }
+
+  // ── HELPERS ──────────────────────────────────────────────
+  function formatDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  // ── INIT ─────────────────────────────────────────────────
+  loadStats();
+</script>
+</body>
+</html>

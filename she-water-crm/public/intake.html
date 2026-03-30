@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Participant Intake — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c27;
+    --border:   #252a38;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #3b82f6;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --purple:   #a78bfa;
+    --cyan:     #22d3ee;
+    --bw:       #3b82f6;
+    --tw:       #22c55e;
+    --wq:       #f59e0b;
+    --ww:       #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .nav-back:hover { color: var(--text); background: var(--border); }
+  .nav-spacer { flex: 1; }
+  .nav-step {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* STEP INDICATOR */
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .step.active { color: var(--text); }
+  .step.done { color: var(--green); }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    flex-shrink: 0;
+  }
+  .step.active .step-num { border-color: var(--accent); background: var(--accent); color: white; }
+  .step.done .step-num { border-color: var(--green); background: var(--green); color: white; }
+  .step-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 8px;
+  }
+  .step-line.done { background: var(--green); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .panel-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* SEARCH EXISTING */
+  .search-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input:focus { border-color: var(--accent); }
+  .input::placeholder { color: var(--muted); }
+  select.input { cursor: pointer; }
+
+  .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: #16a34a; }
+  .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-danger { background: var(--red); color: white; }
+
+  .search-results { margin-top: 12px; }
+  .search-result-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .search-result-row:hover { border-color: var(--accent); }
+  .result-pid {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    min-width: 90px;
+  }
+  .result-name { font-weight: 500; flex: 1; }
+  .result-meta { font-size: 12px; color: var(--muted); }
+  .program-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .badge-BW { background: rgba(59,130,246,0.2); color: var(--bw); }
+  .badge-TW { background: rgba(34,197,94,0.2); color: var(--tw); }
+  .badge-WQ { background: rgba(245,158,11,0.2); color: var(--wq); }
+  .badge-WW { background: rgba(167,139,250,0.2); color: var(--ww); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* FORM */
+  .form-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .form-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .full-col { grid-column: 1 / -1; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .field label.required::after {
+    content: ' *';
+    color: var(--red);
+  }
+
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .checkbox-item input { cursor: pointer; }
+
+  /* PROGRAM SELECTOR */
+  .program-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .program-option {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .program-option:hover { border-color: var(--muted); }
+  .program-option.selected-BW { border-color: var(--bw); background: rgba(59,130,246,0.08); }
+  .program-option.selected-TW { border-color: var(--tw); background: rgba(34,197,94,0.08); }
+  .program-option.selected-WQ { border-color: var(--wq); background: rgba(245,158,11,0.08); }
+  .program-option.selected-WW { border-color: var(--ww); background: rgba(167,139,250,0.08); }
+  .program-option input[type="checkbox"] { position: absolute; top: 10px; right: 10px; }
+  .prog-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .prog-code.BW { color: var(--bw); }
+  .prog-code.TW { color: var(--tw); }
+  .prog-code.WQ { color: var(--wq); }
+  .prog-code.WW { color: var(--ww); }
+  .prog-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .prog-desc { font-size: 11px; color: var(--muted); }
+
+  /* APN LOOKUP */
+  .apn-lookup-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .apn-result {
+    background: var(--bg);
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    display: none;
+  }
+  .apn-result.visible { display: block; }
+  .apn-result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .apn-result-item .label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+  }
+  .apn-result-item .value {
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* CONFIRMATION */
+  .confirm-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .confirm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .confirm-row:last-child { border-bottom: none; }
+  .confirm-label { color: var(--muted); font-size: 12px; }
+  .confirm-value { font-weight: 500; }
+
+  /* BUTTONS ROW */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  /* SUCCESS */
+  .success-card {
+    background: var(--surface);
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+  }
+  .success-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .success-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--green);
+  }
+  .success-pid {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+  .success-ids {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .alert {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .alert.visible { display: block; }
+  .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+  .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: var(--yellow); }
+  .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: var(--green); }
+
+  .loading-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="goBack()">← Participants</button>
+  <div class="nav-spacer"></div>
+  <div class="nav-step" id="nav-step">Step 1 of 3</div>
+</nav>
+
+<div class="container">
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div>
+      <span>Search &amp; Verify</span>
+    </div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step" id="step-2">
+      <div class="step-num">2</div>
+      <span>Participant Info</span>
+    </div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step" id="step-3">
+      <div class="step-num">3</div>
+      <span>Program &amp; Location</span>
+    </div>
+    <div class="step-line" id="line-3"></div>
+    <div class="step" id="step-4">
+      <div class="step-num">4</div>
+      <span>Confirm</span>
+    </div>
+  </div>
+
+  <!-- PANEL 1: SEARCH -->
+  <div class="panel active" id="panel-1">
+    <div class="panel-title">Search Existing Participants</div>
+    <div class="panel-sub">Always search before creating. One person can be in multiple programs.</div>
+
+    <div class="search-box">
+      <div class="search-row">
+        <input class="input" id="s-search" placeholder="Name, phone, PID, or APN..." oninput="debounceIntakeSearch()" autocomplete="off" />
+        <button class="btn btn-primary" onclick="doIntakeSearch()">Search</button>
+      </div>
+      <div id="s-results"></div>
+    </div>
+
+    <div id="existing-alert" class="alert alert-warning">
+      This participant already exists. Open their profile to add a new program enrollment.
+    </div>
+
+    <div class="divider">No match found — create new participant</div>
+
+    <button class="btn btn-green" onclick="goToStep(2)">+ Create New Participant</button>
+  </div>
+
+  <!-- PANEL 2: PERSON INFO -->
+  <div class="panel" id="panel-2">
+    <div class="panel-title">Participant Information</div>
+    <div class="panel-sub">Collect from participant during intake call. Fields marked * are required.</div>
+
+    <div id="alert-2" class="alert alert-error"></div>
+
+    <!-- PERSONAL -->
+    <div class="form-section">
+      <div class="form-section-title">Personal Information</div>
+      <div class="form-grid">
+        <div class="field">
+          <label class="required">First Name</label>
+          <input class="input" id="f-first" placeholder="First name" />
+        </div>
+        <div class="field">
+          <label>Middle Name</label>
+          <input class="input" id="f-middle" placeholder="Middle name" />
+        </div>
+        <div class="field">
+          <label class="required">Last Name</label>
+          <input class="input" id="f-last" placeholder="Last name" />
+        </div>
+        <div class="field">
+          <label>Date of Birth</label>
+          <input class="input" id="f-dob" type="date" />
+        </div>
+        <div class="field">
+          <label class="required">Primary Phone</label>
+          <input class="input" id="f-phone" placeholder="559-555-0000" />
+        </div>
+        <div class="field">
+          <label>Secondary Phone</label>
+          <input class="input" id="f-phone2" placeholder="559-555-0000" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input class="input" id="f-email" type="email" placeholder="email@example.com" />
+        </div>
+        <div class="field">
+          <label>Preferred Language</label>
+          <select class="input" id="f-lang">
+            <option value="Spanish">Spanish</option>
+            <option value="English">English</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field full-col">
+          <label>Interpreter Needed?</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="f-interp" />
+              Yes — interpreter required for this participant
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOUSEHOLD -->
+    <div class="form-section">
+      <div class="form-section-title">Household</div>
+      <div class="form-grid three">
+        <div class="field">
+          <label class="required">Household Size</label>
+          <select class="input" id="f-hh">
+            <option value="">Select</option>
+            <option>1</option><option>2</option><option>3</option>
+            <option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Monthly Income</label>
+          <input class="input" id="f-income" placeholder="0.00" type="number" />
+        </div>
+        <div class="field">
+          <label>Income Verified</label>
+          <select class="input" id="f-income-verified">
+            <option value="false">Not yet</option>
+            <option value="true">Yes — documented</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERRAL -->
+    <div class="form-section">
+      <div class="form-section-title">Referral</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>How did they hear about us?</label>
+          <select class="input" id="f-referral">
+            <option value="self">Self — called in</option>
+            <option value="outreach">SHE Outreach event</option>
+            <option value="community_org">Community organization</option>
+            <option value="gsa">GSA notification</option>
+            <option value="county">County referral</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Referral Detail</label>
+          <input class="input" id="f-referral-detail" placeholder="Organization name or other detail" />
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="validateStep2()">Next: Location & Programs →</button>
+    </div>
+  </div>
+
+  <!-- PANEL 3: LOCATION + PROGRAMS -->
+  <div class="panel" id="panel-3">
+    <div class="panel-title">Location &amp; Program Enrollment</div>
+    <div class="panel-sub">Enter the APN and select all programs this participant needs.</div>
+
+    <div id="alert-3" class="alert alert-error"></div>
+
+    <!-- APN LOOKUP -->
+    <div class="form-section">
+      <div class="form-section-title">Property Location</div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label class="required">County</label>
+          <select class="input" id="f-county">
+            <option value="">Select county</option>
+            <option value="1">Fresno</option>
+            <option value="2">Tulare</option>
+            <option value="3">Kings</option>
+            <option value="4">Kern</option>
+            <option value="5">Madera</option>
+            <option value="6">Merced</option>
+            <option value="7">Stanislaus</option>
+            <option value="8">San Joaquin</option>
+            <option value="9">Mariposa</option>
+            <option value="10">Calaveras</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="required">APN Number</label>
+          <div class="apn-lookup-row">
+            <input class="input" id="f-apn" placeholder="e.g. 019-045-12S" style="flex:1;" />
+            <button class="btn btn-primary" onclick="lookupAPN()">Look Up</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="apn-result" class="apn-result">
+        <div style="font-size:12px;color:var(--green);font-weight:500;margin-bottom:4px;">✓ APN found in database</div>
+        <div class="apn-result-grid" id="apn-result-grid"></div>
+      </div>
+
+      <div id="apn-new-fields" style="display:none;margin-top:16px;">
+        <div style="font-size:12px;color:var(--yellow);margin-bottom:12px;">⚠ New APN — enter location details</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>GSA Zone</label>
+            <input class="input" id="f-gsa" placeholder="e.g. Kings River GSA Zone A" />
+          </div>
+          <div class="field">
+            <label>Mailing Address (if different)</label>
+            <input class="input" id="f-mailing" placeholder="PO Box or different address" />
+          </div>
+          <div class="field">
+            <label>Structure Type</label>
+            <select class="input" id="f-struct-type">
+              <option value="single_family">Single Family</option>
+              <option value="mobile_home">Mobile Home</option>
+              <option value="apartment">Apartment</option>
+              <option value="agricultural_unit">Agricultural Unit</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Unit Number</label>
+            <input class="input" id="f-unit" placeholder="Space 4, Unit B, etc." />
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="field">
+          <label class="required">Role at this address</label>
+          <div class="checkbox-group" style="margin-top:6px;">
+            <label class="checkbox-item">
+              <input type="radio" name="role" value="1" checked /> Owner
+            </label>
+            <label class="checkbox-item">
+              <input type="radio" name="role" value="2" /> Tenant
+            </label>
+            <label class="checkbox-item">
+              <input type="radio" name="role" value="3" /> Authorized Contact
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRAM SELECTION -->
+    <div class="form-section">
+      <div class="form-section-title">Program Enrollment — select all that apply</div>
+      <div class="program-selector">
+        <div class="program-option" id="prog-BW" onclick="toggleProgram('BW')">
+          <input type="checkbox" id="chk-BW" onclick="event.stopPropagation();" onchange="toggleProgram('BW')" />
+          <div class="prog-code BW">BW</div>
+          <div class="prog-name">Bottled Water</div>
+          <div class="prog-desc">Delivery of bottled water to occupied structure</div>
+        </div>
+        <div class="program-option" id="prog-TW" onclick="toggleProgram('TW')">
+          <input type="checkbox" id="chk-TW" onclick="event.stopPropagation();" onchange="toggleProgram('TW')" />
+          <div class="prog-code TW">TW</div>
+          <div class="prog-name">Tank Water</div>
+          <div class="prog-desc">Water storage tank placement for well failures</div>
+        </div>
+        <div class="program-option" id="prog-WQ" onclick="toggleProgram('WQ')">
+          <input type="checkbox" id="chk-WQ" onclick="event.stopPropagation();" onchange="toggleProgram('WQ')" />
+          <div class="prog-code WQ">WQ</div>
+          <div class="prog-name">Water Quality</div>
+          <div class="prog-desc">POE/POU treatment for contaminated water</div>
+        </div>
+        <div class="program-option" id="prog-WW" onclick="toggleProgram('WW')">
+          <input type="checkbox" id="chk-WW" onclick="event.stopPropagation();" onchange="toggleProgram('WW')" />
+          <div class="prog-code WW">WW</div>
+          <div class="prog-name">Water Well</div>
+          <div class="prog-desc">New well drilling for failed domestic wells</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASEWORKER -->
+    <div class="form-section">
+      <div class="form-section-title">Assignment</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Assign Caseworker</label>
+          <select class="input" id="f-caseworker">
+            <option value="">Auto-assign by region</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Initial Notes</label>
+          <input class="input" id="f-notes" placeholder="Brief note about intake call..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToStep(2)">← Back</button>
+      <button class="btn btn-primary" onclick="validateStep3()">Review &amp; Confirm →</button>
+    </div>
+  </div>
+
+  <!-- PANEL 4: CONFIRM -->
+  <div class="panel" id="panel-4">
+    <div class="panel-title">Review &amp; Confirm</div>
+    <div class="panel-sub">Verify all information before creating the participant record.</div>
+
+    <div id="confirm-content"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToStep(3)">← Edit</button>
+      <button class="btn btn-green" onclick="submitIntake()" id="submit-btn">Create Participant &amp; Enroll</button>
+    </div>
+  </div>
+
+  <!-- PANEL 5: SUCCESS -->
+  <div class="panel" id="panel-5">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Participant Created</div>
+      <div class="success-pid" id="success-pid"></div>
+      <div class="success-ids" id="success-ids"></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">
+        Record created successfully. Activity logged. Next step notification sent.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn btn-primary" onclick="viewProfile()">Open Participant Profile</button>
+        <button class="btn btn-ghost" onclick="resetIntake()">New Intake</button>
+        <button class="btn btn-ghost" onclick="goBack()">Back to Participants</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = '';
+  let searchTimer = null;
+  let selectedAPN = null;
+  let newPID = null;
+
+  const PROGRAM_IDS = { BW: 1, TW: 2, WQ: 3, WW: 4 };
+  const CASEWORKERS = {
+    1: [{id:2,name:'Jose Ramirez'},{id:3,name:'Ana Torres'}],
+    2: [{id:7,name:'Sandra Cruz'},{id:8,name:'Miguel Reyes'}],
+    3: [{id:12,name:'Francisco Hernandez'},{id:13,name:'Rosa Jimenez'}],
+    4: [{id:17,name:'Gloria Ruiz'},{id:18,name:'Eduardo Vargas'}],
+    5: [{id:22,name:'Felipe Ramos'},{id:23,name:'Veronica Soto'}],
+  };
+  const COUNTY_REGION = {1:1,2:2,3:1,4:4,5:5,6:5,7:5,8:5,9:3,10:3};
+
+  function goBack() {
+    window.location.href = '/';
+  }
+
+  // ── STEP NAV ──────────────────────────────────────────────
+  function goToStep(n) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + n).classList.add('active');
+    document.getElementById('nav-step').textContent = n < 5 ? `Step ${n} of 4` : 'Complete';
+
+    for (let i = 1; i <= 4; i++) {
+      const s = document.getElementById('step-' + i);
+      s.classList.remove('active', 'done');
+      if (i < n) s.classList.add('done');
+      else if (i === n) s.classList.add('active');
+      if (i < 4) {
+        const l = document.getElementById('line-' + i);
+        l.classList.toggle('done', i < n);
+      }
+    }
+
+    if (n === 3) loadCaseworkers();
+    if (n === 4) buildConfirm();
+    window.scrollTo(0, 0);
+  }
+
+  // ── SEARCH ────────────────────────────────────────────────
+  function debounceIntakeSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doIntakeSearch, 350);
+  }
+
+  async function doIntakeSearch() {
+    const q = document.getElementById('s-search').value.trim();
+    const results = document.getElementById('s-results');
+    if (!q) { results.innerHTML = ''; return; }
+    results.innerHTML = '<div class="loading-inline">Searching...</div>';
+    try {
+      const res = await fetch(`${API}/api/participants?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (!data.length) {
+        results.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No existing participants found for that search.</div>';
+        return;
+      }
+      results.innerHTML = data.slice(0, 5).map(p => `
+        <div class="search-result-row" onclick="selectExisting('${p.pid}')">
+          <div class="result-pid">${p.pid}</div>
+          <div class="result-name">${p.last_name}, ${p.first_name}</div>
+          <div class="result-meta">${p.phone_primary || '—'} · ${p.county_name}</div>
+          <div>${p.programs !== '—' ? p.programs.split(', ').map(pr => `<span class="program-badge badge-${pr.trim()}">${pr.trim()}</span>`).join('') : ''}</div>
+        </div>
+      `).join('');
+    } catch (e) {
+      results.innerHTML = `<div style="color:var(--red);font-size:13px;">Error: ${e.message}</div>`;
+    }
+  }
+
+  function selectExisting(pid) {
+    document.getElementById('existing-alert').classList.add('visible');
+    document.getElementById('existing-alert').innerHTML =
+      `⚠ <strong>${pid}</strong> already exists. <a href="/participant.html?pid=${pid}" style="color:var(--accent);">Open their profile</a> to add a new program enrollment instead.`;
+  }
+
+  // ── STEP 2 VALIDATION ─────────────────────────────────────
+  function validateStep2() {
+    const alert = document.getElementById('alert-2');
+    const first = document.getElementById('f-first').value.trim();
+    const last = document.getElementById('f-last').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+    const hh = document.getElementById('f-hh').value;
+    if (!first || !last || !phone || !hh) {
+      alert.textContent = 'Please fill in all required fields: First Name, Last Name, Phone, and Household Size.';
+      alert.classList.add('visible');
+      return;
+    }
+    alert.classList.remove('visible');
+    goToStep(3);
+  }
+
+  // ── APN LOOKUP ────────────────────────────────────────────
+  async function lookupAPN() {
+    const apn = document.getElementById('f-apn').value.trim();
+    const countyId = document.getElementById('f-county').value;
+    const resultDiv = document.getElementById('apn-result');
+    const newFields = document.getElementById('apn-new-fields');
+
+    if (!apn || !countyId) {
+      alert('Enter both county and APN number first.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/apn-lookup?apn=${encodeURIComponent(apn)}&county_id=${countyId}`);
+      const data = await res.json();
+
+      if (data && data.apn_id) {
+        selectedAPN = data;
+        resultDiv.classList.add('visible');
+        newFields.style.display = 'none';
+        document.getElementById('apn-result-grid').innerHTML = `
+          <div class="apn-result-item">
+            <div class="label">APN</div>
+            <div class="value">${data.apn_number}</div>
+          </div>
+          <div class="apn-result-item">
+            <div class="label">County</div>
+            <div class="value">${data.county_name}</div>
+          </div>
+          <div class="apn-result-item">
+            <div class="label">Region</div>
+            <div class="value">${data.region_name || 'Unassigned'}</div>
+          </div>
+          <div class="apn-result-item">
+            <div class="label">DMPID</div>
+            <div class="value" style="color:${data.dmpid ? 'var(--cyan)' : 'var(--yellow)'};">${data.dmpid || '⚠ Not assigned'}</div>
+          </div>
+          <div class="apn-result-item">
+            <div class="label">GSA Zone</div>
+            <div class="value">${data.gsa_zone || '—'}</div>
+          </div>
+          <div class="apn-result-item">
+            <div class="label">Floodplain</div>
+            <div class="value" style="color:${data.floodplain_flag ? 'var(--red)' : 'var(--green)'};">${data.floodplain_flag ? '⚠ Yes' : 'No'}</div>
+          </div>
+        `;
+        loadCaseworkersByRegion(data.region_id);
+      } else {
+        selectedAPN = null;
+        resultDiv.classList.remove('visible');
+        newFields.style.display = 'block';
+      }
+    } catch (e) {
+      resultDiv.classList.remove('visible');
+      newFields.style.display = 'block';
+    }
+  }
+
+  // ── PROGRAMS ──────────────────────────────────────────────
+  function toggleProgram(code) {
+    const chk = document.getElementById('chk-' + code);
+    const opt = document.getElementById('prog-' + code);
+    chk.checked = !chk.checked;
+    opt.className = 'program-option' + (chk.checked ? ' selected-' + code : '');
+  }
+
+  function selectedPrograms() {
+    return ['BW','TW','WQ','WW'].filter(c => document.getElementById('chk-' + c).checked);
+  }
+
+  // ── CASEWORKERS ───────────────────────────────────────────
+  function loadCaseworkers() {
+    const countyId = parseInt(document.getElementById('f-county').value);
+    const regionId = COUNTY_REGION[countyId] || 1;
+    loadCaseworkersByRegion(regionId);
+  }
+
+  function loadCaseworkersByRegion(regionId) {
+    const sel = document.getElementById('f-caseworker');
+    const workers = CASEWORKERS[regionId] || CASEWORKERS[1];
+    sel.innerHTML = '<option value="">Auto-assign by region</option>' +
+      workers.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  }
+
+  // ── STEP 3 VALIDATION ─────────────────────────────────────
+  function validateStep3() {
+    const alert = document.getElementById('alert-3');
+    const county = document.getElementById('f-county').value;
+    const apn = document.getElementById('f-apn').value.trim();
+    const progs = selectedPrograms();
+
+    if (!county || !apn) {
+      alert.textContent = 'Please select a county and enter an APN number.';
+      alert.classList.add('visible');
+      return;
+    }
+    if (!progs.length) {
+      alert.textContent = 'Please select at least one program.';
+      alert.classList.add('visible');
+      return;
+    }
+    alert.classList.remove('visible');
+    goToStep(4);
+  }
+
+  // ── CONFIRM ───────────────────────────────────────────────
+  function buildConfirm() {
+    const progs = selectedPrograms();
+    const countyEl = document.getElementById('f-county');
+    const countyName = countyEl.options[countyEl.selectedIndex]?.text || '—';
+    const cwEl = document.getElementById('f-caseworker');
+    const cwName = cwEl.options[cwEl.selectedIndex]?.text || 'Auto-assign';
+    const langEl = document.getElementById('f-lang');
+    const hhEl = document.getElementById('f-hh');
+
+    document.getElementById('confirm-content').innerHTML = `
+      <div class="confirm-section">
+        <div class="form-section-title">Personal Information</div>
+        <div class="confirm-row"><span class="confirm-label">Name</span><span class="confirm-value">${document.getElementById('f-first').value} ${document.getElementById('f-middle').value} ${document.getElementById('f-last').value}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Phone</span><span class="confirm-value">${document.getElementById('f-phone').value}${document.getElementById('f-phone2').value ? ' / ' + document.getElementById('f-phone2').value : ''}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Language</span><span class="confirm-value">${langEl.value}${document.getElementById('f-interp').checked ? ' — Interpreter needed' : ''}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Household Size</span><span class="confirm-value">${hhEl.value}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Referral</span><span class="confirm-value">${document.getElementById('f-referral').value}${document.getElementById('f-referral-detail').value ? ' — ' + document.getElementById('f-referral-detail').value : ''}</span></div>
+      </div>
+      <div class="confirm-section">
+        <div class="form-section-title">Location</div>
+        <div class="confirm-row"><span class="confirm-label">County</span><span class="confirm-value">${countyName}</span></div>
+        <div class="confirm-row"><span class="confirm-label">APN</span><span class="confirm-value" style="font-family:'IBM Plex Mono',monospace;">${document.getElementById('f-apn').value}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Role</span><span class="confirm-value">${document.querySelector('input[name="role"]:checked')?.parentElement.textContent.trim() || 'Owner'}</span></div>
+        ${selectedAPN ? `<div class="confirm-row"><span class="confirm-label">GSA Zone</span><span class="confirm-value">${selectedAPN.gsa_zone || '—'}</span></div>` : ''}
+        ${selectedAPN ? `<div class="confirm-row"><span class="confirm-label">Region</span><span class="confirm-value">${selectedAPN.region_name || 'Unassigned'}</span></div>` : ''}
+      </div>
+      <div class="confirm-section">
+        <div class="form-section-title">Programs</div>
+        <div class="confirm-row">
+          <span class="confirm-label">Enrolling in</span>
+          <span class="confirm-value">${progs.map(p => `<span class="program-badge badge-${p}">${p}</span>`).join(' ')}</span>
+        </div>
+        <div class="confirm-row"><span class="confirm-label">Caseworker</span><span class="confirm-value">${cwName}</span></div>
+        ${document.getElementById('f-notes').value ? `<div class="confirm-row"><span class="confirm-label">Notes</span><span class="confirm-value">${document.getElementById('f-notes').value}</span></div>` : ''}
+      </div>
+    `;
+  }
+
+  // ── SUBMIT ────────────────────────────────────────────────
+  async function submitIntake() {
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = 'Creating...';
+    btn.disabled = true;
+
+    const progs = selectedPrograms();
+    const roleEl = document.querySelector('input[name="role"]:checked');
+    const countyId = parseInt(document.getElementById('f-county').value);
+
+    const payload = {
+      person: {
+        first_name:         document.getElementById('f-first').value.trim(),
+        middle_name:        document.getElementById('f-middle').value.trim() || null,
+        last_name:          document.getElementById('f-last').value.trim(),
+        dob:                document.getElementById('f-dob').value || null,
+        phone_primary:      document.getElementById('f-phone').value.trim(),
+        phone_secondary:    document.getElementById('f-phone2').value.trim() || null,
+        email:              document.getElementById('f-email').value.trim() || null,
+        preferred_language: document.getElementById('f-lang').value,
+        interpreter_needed: document.getElementById('f-interp').checked,
+      },
+      household_size:   parseInt(document.getElementById('f-hh').value),
+      monthly_income:   parseFloat(document.getElementById('f-income').value) || null,
+      income_verified:  document.getElementById('f-income-verified').value === 'true',
+      referral_source:  document.getElementById('f-referral').value,
+      referral_detail:  document.getElementById('f-referral-detail').value || null,
+      location: {
+        county_id:      countyId,
+        apn_number:     document.getElementById('f-apn').value.trim(),
+        existing_apn_id: selectedAPN?.apn_id || null,
+        gsa_zone:       selectedAPN?.gsa_zone || document.getElementById('f-gsa')?.value || null,
+        mailing_address: document.getElementById('f-mailing')?.value || null,
+        structure_type:  selectedAPN ? null : (document.getElementById('f-struct-type')?.value || 'single_family'),
+        unit_number:    document.getElementById('f-unit')?.value || null,
+        role_type_id:   parseInt(roleEl?.value || '1'),
+      },
+      programs:       progs,
+      caseworker_id:  parseInt(document.getElementById('f-caseworker').value) || null,
+      notes:          document.getElementById('f-notes').value || null,
+    };
+
+    try {
+      const res = await fetch(`${API}/api/intake`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      newPID = data.pid;
+      document.getElementById('success-pid').textContent = data.pid;
+      document.getElementById('success-ids').innerHTML =
+        Object.entries(data.program_ids).map(([code, id]) =>
+          `<span class="program-badge badge-${code}" style="font-size:13px;padding:5px 12px;">${code}: ${id}</span>`
+        ).join('');
+
+      goToStep(5);
+    } catch (e) {
+      btn.textContent = 'Create Participant & Enroll';
+      btn.disabled = false;
+      alert('Error creating participant: ' + e.message);
+    }
+  }
+
+  function viewProfile() {
+    if (newPID) window.location.href = `/?pid=${newPID}`;
+  }
+
+  function resetIntake() {
+    window.location.reload();
+  }
+</script>
+</body>
+</html>
