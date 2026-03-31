@@ -431,7 +431,6 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      JOIN person_structure pstr ON pstr.pid = p.pid AND pstr.end_date IS NULL
       LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
       LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
