@@ -228,21 +228,24 @@ head("7. WHAT IS BUILT ✓")
 line()
 
 built = [
-    "PostgreSQL schema — 30 tables, full relational model",
-    "Live database on Neon with 313 participants, 382 enrollments",
-    "Node/Express API server with 29 endpoints",
-    "Dashboard (localhost:3000) — live stats, program nav",
-    "Participant search — 100 results, live filter, allotment calc",
-    "Participant profile — APN, DMPID, GSA, enrollments, cases, history",
-    "New participant intake — 4-step form, creates PID + program IDs",
+    "PostgreSQL schema — 39 tables, full relational model",
+    "Migration v2 — GSA eligibility, ROE, demographics, site assessments, 31 new fields",
+    "Live database on Neon with 313 participants, 382 enrollments, 650 deliveries, 754 tank fills",
+    "Node/Express API server with 28 endpoints across all 4 programs",
+    "Dashboard (localhost:3000) — live stats, all four program nav buttons",
+    "Participant search — 100 results, live filter, allotment calc, program badges",
+    "Participant profile — APN, DMPID, GSA, enrollments, cases, history — 5 tabs",
+    "New participant intake — 4-step form, creates PID + program IDs end to end",
     "APN lookup against database on intake",
-    "Bottled Water screen — calendar, participants, missed delivery log, vendor performance",
+    "Bottled Water screen — living calendar, participants, missed delivery log, vendor performance, miss patterns",
     "Tank Water screen — participants, tank inventory, fill schedule, hauler metrics",
-    "Water Quality screen — MCL tracking, lab results, contaminant overview, equipment",
+    "Water Quality screen — MCL tracking, lab results, contaminant overview, equipment service",
     "Water Well screen — cases, pipeline board, well inventory, driller performance, approvals",
     "React app (localhost:3001) — participant search + full profile with 5 tabs",
-    "Git version control — pushed to GitHub",
-    "Python patch system — scriptable updates, auto-backup",
+    "Operational data — deliveries, tank fills, WQ results, sample points, equipment, activities",
+    "Git version control — pushed to GitHub, clean working tree",
+    "Python patch system — scriptable updates, auto-backup on every change",
+    "Diagnostic tool — full project state snapshot",
 ]
 
 for item in built:
@@ -253,8 +256,7 @@ head("8. WHAT IS OUTSTANDING ✗")
 line()
 
 outstanding = [
-    ("HIGH",   "BW screen — participants not loading (query needs fix)"),
-    ("HIGH",   "TW/WQ/WW screens — data not populating yet"),
+    ("HIGH",   "TW/WQ/WW screens — participants tab not populating yet"),
     ("HIGH",   "Activity logging — log any action against a case"),
     ("HIGH",   "Case status workflow — open → pending → approved → closed"),
     ("HIGH",   "Power Automate webhooks — notify next step on status change"),
