@@ -474,9 +474,6 @@ app.post('/api/case/:case_id/status', async (req, res) => {
 
 app.get('/api/bw/stats', async (req, res) => {
   try {
-    const now = new Date();
-    const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-    const lastDay  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()}`;
     const result = await pool.query(`
       SELECT
         (SELECT COUNT(*) FROM program_enrollment pe
@@ -486,23 +483,23 @@ app.get('/api/bw/stats', async (req, res) => {
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW'
-         AND d.scheduled_date BETWEEN $1 AND $2) AS scheduled,
+         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS scheduled,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'delivered'
-         AND d.scheduled_date BETWEEN $1 AND $2) AS delivered,
+         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS delivered,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'missed'
-         AND d.scheduled_date BETWEEN $1 AND $2) AS missed,
+         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS missed,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'disputed'
-         AND d.scheduled_date BETWEEN $1 AND $2) AS disputed
-    `, [firstDay, lastDay]);
+         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS disputed
+    `);
     res.json(result.rows[0]);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
@@ -528,7 +525,14 @@ app.get('/api/bw/participants', async (req, res) => {
         es.status_name, ps.household_size,
         a.apn_number, c.county_name,
         s.structure_type, s.unit_number,
-        v.vendor_id, v.vendor_name,
+        (SELECT v.vendor_id FROM delivery d
+         JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
+        (SELECT v.vendor_name FROM delivery d
+         JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
         (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
@@ -546,13 +550,8 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
-      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
+      LEFT JOIN person_structure ps ON ps.pid = p.pid AND ps.end_date IS NULL
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
-      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
-               pe.enrollment_id, es.status_name, ps.household_size,
-               a.apn_number, c.county_name, s.structure_type, s.unit_number,
-               v.vendor_id, v.vendor_name
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
