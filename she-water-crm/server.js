@@ -405,25 +405,53 @@ app.get('/api/bw/vendors', async (req, res) => {
 });
 
 app.get('/api/bw/participants', async (req, res) => {
+  const { vendor, county } = req.query;
   try {
+    const conditions = ["pr.program_code = 'BW'", "pe.exit_date IS NULL"];
+    const params = [];
+    if (vendor) { params.push(vendor); conditions.push(`v_sub.vendor_id = $${params.length}`); }
+    if (county) { params.push(county); conditions.push(`c.county_name = $${params.length}`); }
+
     const result = await pool.query(`
       SELECT
-        p.pid, p.first_name, p.last_name,
-        pe.program_specific_id, pe.enrollment_id,
-        es.status_name, ps.household_size,
-        a.apn_number, c.county_name,
-        s.structure_type, s.unit_number,
-        v.vendor_id, v.vendor_name,
-        (SELECT d.scheduled_date FROM delivery d
+        p.pid,
+        p.first_name,
+        p.last_name,
+        pe.program_specific_id,
+        pe.enrollment_id,
+        es.status_name,
+        COALESCE(ps.household_size, 0) AS household_size,
+        a.apn_number,
+        c.county_name,
+        s.structure_type,
+        s.unit_number,
+        (SELECT v.vendor_id
+         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
+        (SELECT v.vendor_name
+         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
+        (SELECT d.scheduled_date
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
-        (SELECT d.delivery_status FROM delivery d
+        (SELECT d.delivery_status
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_status,
-        (SELECT d.scheduled_date FROM delivery d
+        (SELECT d.scheduled_date
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
-         AND d.scheduled_date >= CURRENT_DATE
-         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery
+           AND d.scheduled_date >= CURRENT_DATE
+         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery,
+        CASE
+          WHEN COALESCE(ps.household_size,0) <= 2 THEN 20
+          WHEN COALESCE(ps.household_size,0) <= 4 THEN 40
+          WHEN COALESCE(ps.household_size,0) <= 6 THEN 50
+          ELSE 60
+        END AS allotment_gallons
       FROM program_enrollment pe
       JOIN program pr ON pr.program_id = pe.program_id
       JOIN person p ON p.pid = pe.pid
@@ -431,19 +459,14 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
-      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
+      LEFT JOIN person_structure ps
+        ON ps.pid = p.pid AND ps.end_date IS NULL
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
-      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
-               pe.enrollment_id, es.status_name, ps.household_size,
-               a.apn_number, c.county_name, s.structure_type, s.unit_number,
-               v.vendor_id, v.vendor_name
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
-
 app.get('/api/bw/deliveries', async (req, res) => {
   const { year, month } = req.query;
   try {
@@ -918,22 +941,19 @@ app.get('/api/staff', async (req, res) => {
 app.get('/api/queue/:staff_id', async (req, res) => {
   const { staff_id } = req.params;
   try {
-    // Get staff role to determine what queue to show
     const staffRes = await pool.query(
-      'SELECT role, region_id FROM staff WHERE staff_id = $1', [staff_id]
+      `SELECT role, region_id FROM staff WHERE staff_id = $1`, [staff_id]
     );
     if (!staffRes.rows.length) return res.json([]);
-    const { role, region_id } = staffRes.rows[0];
+    const { role } = staffRes.rows[0];
 
-    // Map role to status_steps they own
     const stepMap = {
-      caseworker:     ['results_received','closeout_scheduled','maintenance_monitoring','open','pending_approval_caseworker'],
-      field_staff:    ['field_visit_scheduled','sample_collected'],
+      caseworker:     ['results_received', 'closeout_scheduled', 'maintenance_monitoring', 'open', 'awaiting_lab_results'],
+      field_staff:    ['field_visit_scheduled', 'sample_collected'],
       region_manager: ['pending_approval'],
       vendor:         ['vendor_scheduled'],
     };
     const mySteps = stepMap[role] || ['open'];
-    const placeholders = mySteps.map((_,i) => `$${i+2}`).join(',');
 
     const r = await pool.query(`
       SELECT
@@ -949,7 +969,8 @@ app.get('/api/queue/:staff_id', async (req, res) => {
         cr.case_status,
         cr.opened_date,
         EXTRACT(DAY FROM NOW() - cr.opened_date)::INT AS days_open,
-        es.status_name
+        es.status_name,
+        st2.first_name || ' ' || st2.last_name AS assigned_to
       FROM case_record cr
       JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
       JOIN program pr ON pr.program_id = pe.program_id
@@ -958,17 +979,16 @@ app.get('/api/queue/:staff_id', async (req, res) => {
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
       JOIN enrollment_status es ON es.status_id = pe.status_id
+      LEFT JOIN staff st2 ON st2.staff_id = cr.assigned_staff_id
       WHERE cr.case_status NOT IN ('closed')
-        AND pe.status_step IN (${placeholders})
-        AND (pe.exit_date IS NULL)
+        AND pe.status_step = ANY($1::text[])
+        AND pe.exit_date IS NULL
       ORDER BY cr.opened_date ASC
-      LIMIT 50
-    `, [staff_id, ...mySteps]);
+      LIMIT 100
+    `, [mySteps]);
     res.json(r.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
-
-// ── CASE ACTIVITIES ──────────────────────────────────────────
 
 app.get('/api/case/:case_id/activities', async (req, res) => {
   const { case_id } = req.params;
