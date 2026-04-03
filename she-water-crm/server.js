@@ -405,46 +405,32 @@ app.get('/api/bw/vendors', async (req, res) => {
 });
 
 app.get('/api/bw/participants', async (req, res) => {
-  const { vendor, county } = req.query;
   try {
-    const conditions = ["pr.program_code = 'BW'", "pe.exit_date IS NULL"];
-    const params = [];
-    if (vendor) { params.push(vendor); conditions.push(`v_sub.vendor_id = $${params.length}`); }
-    if (county) { params.push(county); conditions.push(`c.county_name = $${params.length}`); }
-
     const result = await pool.query(`
       SELECT
-        p.pid,
-        p.first_name,
-        p.last_name,
-        pe.program_specific_id,
-        pe.enrollment_id,
+        p.pid, p.first_name, p.last_name,
+        pe.program_specific_id, pe.enrollment_id,
         es.status_name,
         COALESCE(ps.household_size, 0) AS household_size,
-        a.apn_number,
-        c.county_name,
-        s.structure_type,
-        s.unit_number,
-        (SELECT v.vendor_id
-         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+        a.apn_number, c.county_name,
+        s.structure_type, s.unit_number,
+        (SELECT v.vendor_id FROM delivery d
+         JOIN vendor v ON v.vendor_id = d.vendor_id
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
-        (SELECT v.vendor_name
-         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+        (SELECT v.vendor_name FROM delivery d
+         JOIN vendor v ON v.vendor_id = d.vendor_id
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
-        (SELECT d.scheduled_date
-         FROM delivery d
+        (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
-        (SELECT d.delivery_status
-         FROM delivery d
+        (SELECT d.delivery_status FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_status,
-        (SELECT d.scheduled_date
-         FROM delivery d
+        (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
-           AND d.scheduled_date >= CURRENT_DATE
+         AND d.scheduled_date >= CURRENT_DATE
          ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery,
         CASE
           WHEN COALESCE(ps.household_size,0) <= 2 THEN 20
@@ -459,14 +445,14 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN person_structure ps
-        ON ps.pid = p.pid AND ps.end_date IS NULL
+      LEFT JOIN person_structure ps ON ps.pid = p.pid AND ps.end_date IS NULL
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/bw/deliveries', async (req, res) => {
   const { year, month } = req.query;
   try {
@@ -1015,4 +1001,60 @@ app.get('/api/case/:case_id/activities', async (req, res) => {
     `, [case_id]);
     res.json(r.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── CASE STATUS ──────────────────────────────────────────────
+
+app.get('/api/case/:case_id/status', async (req, res) => {
+  const { case_id } = req.params;
+  try {
+    const r = await pool.query(`
+      SELECT
+        cr.case_id, cr.case_status, cr.opened_date, cr.closed_date, cr.notes,
+        pe.enrollment_id, pe.status_secondary, pe.status_step, pe.wq_phase,
+        pe.program_specific_id,
+        es.status_name,
+        pr.program_name, pr.program_code,
+        p.pid, p.first_name, p.last_name,
+        st.first_name || ' ' || st.last_name AS caseworker_name
+      FROM case_record cr
+      JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
+      JOIN enrollment_status es ON es.status_id = pe.status_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      LEFT JOIN staff st ON st.staff_id = cr.assigned_staff_id
+      WHERE cr.case_id = $1
+    `, [case_id]);
+    res.json(r.rows[0] || null);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/case/:case_id/status', async (req, res) => {
+  const { case_id } = req.params;
+  const { case_status, status_secondary, status_step, notes, staff_id } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`
+      UPDATE case_record
+      SET case_status = $1,
+          notes = COALESCE($2, notes),
+          closed_date = CASE WHEN $1 = 'closed' THEN CURRENT_DATE ELSE closed_date END
+      WHERE case_id = $3
+    `, [case_status, notes, case_id]);
+    if (status_secondary || status_step) {
+      await client.query(`
+        UPDATE program_enrollment pe
+        SET status_secondary = COALESCE($1, status_secondary),
+            status_step = COALESCE($2, status_step)
+        FROM case_record cr
+        WHERE cr.enrollment_id = pe.enrollment_id AND cr.case_id = $3
+      `, [status_secondary, status_step, case_id]);
+    }
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch(err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
