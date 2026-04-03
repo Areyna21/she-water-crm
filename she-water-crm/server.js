@@ -405,25 +405,53 @@ app.get('/api/bw/vendors', async (req, res) => {
 });
 
 app.get('/api/bw/participants', async (req, res) => {
+  const { vendor, county } = req.query;
   try {
+    const conditions = ["pr.program_code = 'BW'", "pe.exit_date IS NULL"];
+    const params = [];
+    if (vendor) { params.push(vendor); conditions.push(`v_sub.vendor_id = $${params.length}`); }
+    if (county) { params.push(county); conditions.push(`c.county_name = $${params.length}`); }
+
     const result = await pool.query(`
       SELECT
-        p.pid, p.first_name, p.last_name,
-        pe.program_specific_id, pe.enrollment_id,
-        es.status_name, ps.household_size,
-        a.apn_number, c.county_name,
-        s.structure_type, s.unit_number,
-        v.vendor_id, v.vendor_name,
-        (SELECT d.scheduled_date FROM delivery d
+        p.pid,
+        p.first_name,
+        p.last_name,
+        pe.program_specific_id,
+        pe.enrollment_id,
+        es.status_name,
+        COALESCE(ps.household_size, 0) AS household_size,
+        a.apn_number,
+        c.county_name,
+        s.structure_type,
+        s.unit_number,
+        (SELECT v.vendor_id
+         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
+        (SELECT v.vendor_name
+         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
+         WHERE d.enrollment_id = pe.enrollment_id
+         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
+        (SELECT d.scheduled_date
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
-        (SELECT d.delivery_status FROM delivery d
+        (SELECT d.delivery_status
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_status,
-        (SELECT d.scheduled_date FROM delivery d
+        (SELECT d.scheduled_date
+         FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
-         AND d.scheduled_date >= CURRENT_DATE
-         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery
+           AND d.scheduled_date >= CURRENT_DATE
+         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery,
+        CASE
+          WHEN COALESCE(ps.household_size,0) <= 2 THEN 20
+          WHEN COALESCE(ps.household_size,0) <= 4 THEN 40
+          WHEN COALESCE(ps.household_size,0) <= 6 THEN 50
+          ELSE 60
+        END AS allotment_gallons
       FROM program_enrollment pe
       JOIN program pr ON pr.program_id = pe.program_id
       JOIN person p ON p.pid = pe.pid
@@ -431,19 +459,14 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
-      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
+      LEFT JOIN person_structure ps
+        ON ps.pid = p.pid AND ps.end_date IS NULL
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
-      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
-               pe.enrollment_id, es.status_name, ps.household_size,
-               a.apn_number, c.county_name, s.structure_type, s.unit_number,
-               v.vendor_id, v.vendor_name
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
-
 app.get('/api/bw/deliveries', async (req, res) => {
   const { year, month } = req.query;
   try {
