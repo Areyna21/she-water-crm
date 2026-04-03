@@ -355,125 +355,13 @@ app.post('/api/intake', async (req, res) => {
   } finally { client.release(); }
 });
 
-
-// ── ACTIVITY LOG ────────────────────────────────────────────
-
-app.get('/api/activity/:pid', async (req, res) => {
-  const { pid } = req.params;
-  try {
-    const result = await pool.query(`
-      SELECT
-        a.activity_id,
-        a.activity_date,
-        a.notes,
-        a.next_step_triggered,
-        a.survey123_ref,
-        at.activity_name,
-        at.activity_category,
-        pr.program_name,
-        pr.program_code,
-        st.first_name || ' ' || st.last_name AS performed_by_name,
-        cr.case_id
-      FROM activity a
-      JOIN activity_type at ON at.activity_type_id = a.activity_type_id
-      JOIN case_record cr ON cr.case_id = a.case_id
-      JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
-      JOIN program pr ON pr.program_id = pe.program_id
-      LEFT JOIN staff st ON st.staff_id = a.performed_by
-      WHERE pe.pid = $1
-      ORDER BY a.activity_date DESC
-      LIMIT 100
-    `, [pid]);
-    res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/activity', async (req, res) => {
-  const { case_id, activity_type_id, performed_by, notes, survey123_ref } = req.body;
-  try {
-    const result = await pool.query(`
-      INSERT INTO activity (case_id, activity_type_id, performed_by, activity_date, notes, survey123_ref, next_step_triggered)
-      VALUES ($1, $2, $3, NOW(), $4, $5,
-        (SELECT triggers_next_step FROM activity_type WHERE activity_type_id = $2))
-      RETURNING activity_id
-    `, [case_id, activity_type_id, performed_by, notes, survey123_ref || null]);
-    res.json({ activity_id: result.rows[0].activity_id });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.get('/api/activity-types', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT at.activity_type_id, at.activity_name, at.activity_category,
-             at.triggers_next_step, pr.program_code
-      FROM activity_type at
-      LEFT JOIN program pr ON pr.program_id = at.program_id
-      WHERE at.active_flag = TRUE
-      ORDER BY at.program_id NULLS FIRST, at.activity_name
-    `);
-    res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.get('/api/case/:case_id/status', async (req, res) => {
-  const { case_id } = req.params;
-  try {
-    const result = await pool.query(`
-      SELECT cr.case_id, cr.case_status, cr.opened_date, cr.closed_date, cr.notes,
-             pe.status_id, pe.status_secondary, pe.status_step,
-             es.status_name, pr.program_name, pr.program_code,
-             p.pid, p.first_name, p.last_name
-      FROM case_record cr
-      JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
-      JOIN enrollment_status es ON es.status_id = pe.status_id
-      JOIN program pr ON pr.program_id = pe.program_id
-      JOIN person p ON p.pid = pe.pid
-      WHERE cr.case_id = $1
-    `, [case_id]);
-    res.json(result.rows[0] || null);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post('/api/case/:case_id/status', async (req, res) => {
-  const { case_id } = req.params;
-  const { case_status, status_secondary, status_step, notes, staff_id } = req.body;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(`
-      UPDATE case_record SET case_status = $1, notes = COALESCE($2, notes),
-        closed_date = CASE WHEN $1 = 'closed' THEN CURRENT_DATE ELSE closed_date END
-      WHERE case_id = $3
-    `, [case_status, notes, case_id]);
-    await client.query(`
-      UPDATE program_enrollment pe SET
-        status_secondary = $1, status_step = $2
-      FROM case_record cr
-      WHERE cr.enrollment_id = pe.enrollment_id AND cr.case_id = $3
-    `, [status_secondary, status_step, case_id]);
-    // Log the status change as an activity
-    const at = await client.query(
-      `SELECT activity_type_id FROM activity_type WHERE activity_name = $1 LIMIT 1`,
-      [case_status === 'closed' ? 'Case Closed' : case_status === 'pending_approval' ? 'Submitted for Approval' : 'Approved']
-    );
-    if (at.rows.length) {
-      await client.query(`
-        INSERT INTO activity (case_id, activity_type_id, performed_by, activity_date, notes)
-        VALUES ($1, $2, $3, NOW(), $4)
-      `, [case_id, at.rows[0].activity_type_id, staff_id, `Status changed to: ${case_status}. ${notes || ''}`]);
-    }
-    await client.query('COMMIT');
-    res.json({ success: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
-  } finally { client.release(); }
-});
-
 // ── BOTTLED WATER ENDPOINTS ─────────────────────────────────
 
 app.get('/api/bw/stats', async (req, res) => {
   try {
+    const now = new Date();
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const lastDay  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()}`;
     const result = await pool.query(`
       SELECT
         (SELECT COUNT(*) FROM program_enrollment pe
@@ -483,23 +371,23 @@ app.get('/api/bw/stats', async (req, res) => {
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW'
-         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS scheduled,
+         AND d.scheduled_date BETWEEN $1 AND $2) AS scheduled,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'delivered'
-         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS delivered,
+         AND d.scheduled_date BETWEEN $1 AND $2) AS delivered,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'missed'
-         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS missed,
+         AND d.scheduled_date BETWEEN $1 AND $2) AS missed,
         (SELECT COUNT(*) FROM delivery d
          JOIN program_enrollment pe ON pe.enrollment_id = d.enrollment_id
          JOIN program pr ON pr.program_id = pe.program_id
          WHERE pr.program_code = 'BW' AND d.delivery_status = 'disputed'
-         AND d.scheduled_date >= CURRENT_DATE - INTERVAL '30 days') AS disputed
-    `);
+         AND d.scheduled_date BETWEEN $1 AND $2) AS disputed
+    `, [firstDay, lastDay]);
     res.json(result.rows[0]);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
@@ -525,14 +413,7 @@ app.get('/api/bw/participants', async (req, res) => {
         es.status_name, ps.household_size,
         a.apn_number, c.county_name,
         s.structure_type, s.unit_number,
-        (SELECT v.vendor_id FROM delivery d
-         JOIN vendor v ON v.vendor_id = d.vendor_id
-         WHERE d.enrollment_id = pe.enrollment_id
-         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
-        (SELECT v.vendor_name FROM delivery d
-         JOIN vendor v ON v.vendor_id = d.vendor_id
-         WHERE d.enrollment_id = pe.enrollment_id
-         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
+        v.vendor_id, v.vendor_name,
         (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
@@ -550,8 +431,13 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN person_structure ps ON ps.pid = p.pid AND ps.end_date IS NULL
+      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
+      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
+      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
+               pe.enrollment_id, es.status_name, ps.household_size,
+               a.apn_number, c.county_name, s.structure_type, s.unit_number,
+               v.vendor_id, v.vendor_name
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
@@ -803,9 +689,6 @@ app.get('/api/wq/participants', async (req, res) => {
       LEFT JOIN water_quality_result wqr ON wqr.sample_point_id=sp.sample_point_id
       LEFT JOIN equipment e ON e.sample_point_id=sp.sample_point_id
       WHERE pr.program_code='WQ' AND pe.exit_date IS NULL
-      GROUP BY p.pid, p.first_name, p.last_name, a.apn_number, c.county_name,
-               spt.point_type_name, wqr.contaminant, wqr.value, wqr.unit,
-               wqr.mcl_value, wqr.exceeds_mcl_flag, e.equipment_type
       ORDER BY wqr.exceeds_mcl_flag DESC NULLS LAST, p.last_name
     `);
     res.json(r.rows);
@@ -925,9 +808,6 @@ app.get('/api/ww/cases', async (req, res) => {
       JOIN county c ON c.county_id=a.county_id
       LEFT JOIN staff st ON st.staff_id=cr.assigned_staff_id
       WHERE pr.program_code='WW'
-      GROUP BY cr.case_id, cr.opened_date, cr.closed_date, cr.case_status, cr.notes,
-               p.pid, p.first_name, p.last_name, a.apn_number, c.county_name,
-               st.first_name, st.last_name
       ORDER BY cr.opened_date DESC
     `);
     res.json(r.rows);
@@ -998,6 +878,104 @@ app.get('/api/ww/approvals', async (req, res) => {
       WHERE pr.program_code='WW'
       ORDER BY ap.submitted_date DESC
     `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── STAFF ────────────────────────────────────────────────────
+
+app.get('/api/staff', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT staff_id, first_name, last_name, role, region_id,
+             email, phone
+      FROM staff WHERE active_flag = TRUE
+      ORDER BY role, last_name
+    `);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── MY QUEUE ─────────────────────────────────────────────────
+
+app.get('/api/queue/:staff_id', async (req, res) => {
+  const { staff_id } = req.params;
+  try {
+    // Get staff role to determine what queue to show
+    const staffRes = await pool.query(
+      'SELECT role, region_id FROM staff WHERE staff_id = $1', [staff_id]
+    );
+    if (!staffRes.rows.length) return res.json([]);
+    const { role, region_id } = staffRes.rows[0];
+
+    // Map role to status_steps they own
+    const stepMap = {
+      caseworker:     ['results_received','closeout_scheduled','maintenance_monitoring','open','pending_approval_caseworker'],
+      field_staff:    ['field_visit_scheduled','sample_collected'],
+      region_manager: ['pending_approval'],
+      vendor:         ['vendor_scheduled'],
+    };
+    const mySteps = stepMap[role] || ['open'];
+    const placeholders = mySteps.map((_,i) => `$${i+2}`).join(',');
+
+    const r = await pool.query(`
+      SELECT
+        cr.case_id,
+        pe.pid,
+        p.first_name,
+        p.last_name,
+        c.county_name,
+        pr.program_code,
+        pe.wq_phase,
+        pe.status_secondary,
+        pe.status_step,
+        cr.case_status,
+        cr.opened_date,
+        EXTRACT(DAY FROM NOW() - cr.opened_date)::INT AS days_open,
+        es.status_name
+      FROM case_record cr
+      JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      JOIN structure s ON s.structure_id = pe.structure_id
+      JOIN apn a ON a.apn_id = s.apn_id
+      JOIN county c ON c.county_id = a.county_id
+      JOIN enrollment_status es ON es.status_id = pe.status_id
+      WHERE cr.case_status NOT IN ('closed')
+        AND pe.status_step IN (${placeholders})
+        AND (pe.exit_date IS NULL)
+      ORDER BY cr.opened_date ASC
+      LIMIT 50
+    `, [staff_id, ...mySteps]);
+    res.json(r.rows);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── CASE ACTIVITIES ──────────────────────────────────────────
+
+app.get('/api/case/:case_id/activities', async (req, res) => {
+  const { case_id } = req.params;
+  try {
+    const r = await pool.query(`
+      SELECT
+        a.activity_id,
+        a.activity_date,
+        a.notes,
+        a.next_step_triggered,
+        at.activity_name,
+        at.activity_category,
+        pr.program_code,
+        s.first_name || ' ' || s.last_name AS performed_by_name,
+        s.role AS staff_role
+      FROM activity a
+      JOIN activity_type at ON at.activity_type_id = a.activity_type_id
+      JOIN case_record cr ON cr.case_id = a.case_id
+      JOIN program_enrollment pe ON pe.enrollment_id = cr.enrollment_id
+      JOIN program pr ON pr.program_id = pe.program_id
+      LEFT JOIN staff s ON s.staff_id = a.performed_by
+      WHERE a.case_id = $1
+      ORDER BY a.activity_date DESC, a.activity_id DESC
+    `, [case_id]);
     res.json(r.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });

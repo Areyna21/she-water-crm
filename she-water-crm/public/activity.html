@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Log — SHE Water CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#181c27;--border:#252a38;--text:#e2e8f0;--muted:#64748b;--accent:#3b82f6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--purple:#a78bfa;--cyan:#22d3ee;--wq:#f59e0b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:52px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cyan);}
+.nav-back{color:var(--muted);font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit;padding:6px 10px;border-radius:6px;}
+.nav-back:hover{color:var(--text);background:var(--border);}
+.container{max-width:1400px;margin:0 auto;padding:24px;}
+.two-col{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.card-title{font-size:13px;font-weight:600;}
+.card-body{padding:16px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pill-caseworker{background:rgba(59,130,246,0.15);color:#60a5fa;}
+.pill-field_staff{background:rgba(34,197,94,0.15);color:var(--green);}
+.pill-vendor{background:rgba(245,158,11,0.15);color:var(--yellow);}
+.pill-region_manager{background:rgba(167,139,250,0.15);color:var(--purple);}
+.pill-lab{background:rgba(34,211,238,0.15);color:var(--cyan);}
+.pill-phase{background:rgba(245,158,11,0.1);color:var(--yellow);font-size:12px;padding:4px 12px;}
+.status-banner{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.status-banner .phase{font-size:18px;font-weight:600;}
+.status-banner .step{font-size:13px;color:var(--muted);margin-top:2px;}
+.ball-owner{margin-left:auto;text-align:right;}
+.ball-owner .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+.ball-owner .name{font-size:14px;font-weight:600;color:var(--cyan);}
+.timeline{padding:4px 0;}
+.timeline-item{display:flex;gap:14px;padding:14px 16px;position:relative;border-bottom:1px solid var(--border);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;}
+.timeline-dot.caseworker{background:rgba(59,130,246,0.15);border:2px solid rgba(59,130,246,0.4);}
+.timeline-dot.field_staff{background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.4);}
+.timeline-dot.vendor{background:rgba(245,158,11,0.15);border:2px solid rgba(245,158,11,0.4);}
+.timeline-dot.region_manager{background:rgba(167,139,250,0.15);border:2px solid rgba(167,139,250,0.4);}
+.timeline-dot.unknown{background:var(--surface);border:2px solid var(--border);}
+.timeline-content{flex:1;min-width:0;}
+.timeline-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.timeline-meta{font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;gap:10px;flex-wrap:wrap;}
+.timeline-notes{font-size:12px;color:#94a3b8;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:6px 10px;margin-top:6px;}
+.log-form{display:flex;flex-direction:column;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);}
+.input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;width:100%;}
+.input:focus{border-color:var(--wq);}
+select.input{cursor:pointer;}
+textarea.input{resize:vertical;min-height:72px;}
+.btn{padding:10px 18px;border-radius:7px;border:none;font-size:13px;font-family:inherit;font-weight:600;cursor:pointer;transition:all 0.15s;width:100%;}
+.btn-primary{background:var(--wq);color:#000;}
+.btn-primary:hover{opacity:0.9;}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+.queue-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
+.queue-item:last-child{border-bottom:none;}
+.queue-item:hover{background:rgba(255,255,255,0.02);}
+.queue-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.queue-pid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);}
+.queue-name{font-size:13px;font-weight:500;}
+.queue-step{font-size:11px;color:var(--muted);margin-top:2px;}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+.loading{text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;}
+.success-toast{position:fixed;bottom:24px;right:24px;background:#22c55e;color:white;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;}
+.success-toast.show{opacity:1;}
+.phase-badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+.phase-investigation{background:rgba(59,130,246,0.15);color:#60a5fa;}
+.phase-mitigation{background:rgba(239,68,68,0.15);color:var(--red);}
+.phase-maintenance{background:rgba(34,197,94,0.15);color:var(--green);}
+.phase-closeout{background:rgba(100,116,139,0.2);color:var(--muted);}
+.phase-post_mitigation{background:rgba(167,139,250,0.15);color:var(--purple);}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.stat-mini{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.stat-mini .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+.stat-mini .value{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">SHE · WATER CRM</div>
+  <button class="nav-back" onclick="window.location.href='/'">← Dashboard</button>
+  <span style="font-size:14px;font-weight:600;color:var(--wq);">⚡ Activity Log</span>
+  <div style="flex:1;"></div>
+  <select class="input" id="staff-select" style="width:200px;font-size:12px;" onchange="loadQueue()">
+    <option value="">Select Staff Member</option>
+  </select>
+</nav>
+
+<div class="container">
+  <!-- MY QUEUE -->
+  <div style="margin-bottom:24px;">
+    <div style="font-size:20px;font-weight:600;margin-bottom:4px;">My Queue</div>
+    <div style="font-size:13px;color:var(--muted);">Cases where the ball is in your court</div>
+  </div>
+
+  <div class="two-col">
+    <!-- LEFT: CASE DETAIL + ACTIVITY LOG -->
+    <div>
+      <div id="case-detail">
+        <div class="card">
+          <div class="card-body empty" id="select-prompt">
+            Select a staff member and click a case from the queue to view activity log
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: QUEUE + LOG FORM -->
+    <div>
+      <!-- QUEUE STATS -->
+      <div class="stat-row" id="queue-stats" style="display:none;">
+        <div class="stat-mini"><div class="label">In Queue</div><div class="value" id="qs-total">—</div></div>
+        <div class="stat-mini"><div class="label">High Priority</div><div class="value red" id="qs-high" style="color:var(--red);">—</div></div>
+        <div class="stat-mini"><div class="label">Programs</div><div class="value" id="qs-programs">—</div></div>
+      </div>
+
+      <!-- QUEUE LIST -->
+      <div class="card" id="queue-card">
+        <div class="card-header">
+          <div class="card-title">Cases In My Court</div>
+          <select class="input" id="queue-filter" style="width:120px;font-size:11px;" onchange="filterQueue()">
+            <option value="">All Programs</option>
+            <option value="WQ">WQ</option>
+            <option value="WW">WW</option>
+            <option value="BW">BW</option>
+            <option value="TW">TW</option>
+          </select>
+        </div>
+        <div id="queue-list"><div class="loading">Select a staff member...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS TOAST -->
+<div class="success-toast" id="toast">✓ Activity logged</div>
+
+<script>
+const API = '';
+let allQueue = [];
+let currentCase = null;
+let activityTypes = [];
+let allStaff = [];
+
+// Phase display config
+const phaseConfig = {
+  investigation:    { label: 'Investigation',      icon: '🔍', class: 'phase-investigation' },
+  mitigation:       { label: 'Mitigation',         icon: '🔧', class: 'phase-mitigation' },
+  maintenance:      { label: 'Maintenance',        icon: '🔄', class: 'phase-maintenance' },
+  closeout:         { label: 'Closeout',           icon: '✅', class: 'phase-closeout' },
+  post_mitigation:  { label: 'Post-Mitigation',    icon: '🧪', class: 'phase-post_mitigation' },
+};
+
+const stepLabels = {
+  field_visit_scheduled:  { label: 'Site Visit Scheduled',   owner: 'field_staff',     icon: '📍' },
+  awaiting_lab_results:   { label: 'Awaiting Lab Results',   owner: 'lab',             icon: '🧪' },
+  results_received:       { label: 'Results Received',       owner: 'caseworker',      icon: '📋' },
+  closeout_scheduled:     { label: 'Closeout Scheduled',     owner: 'caseworker',      icon: '📅' },
+  maintenance_monitoring: { label: 'Active Monitoring',      owner: 'caseworker',      icon: '🔄' },
+  vendor_scheduled:       { label: 'Vendor Scheduled',       owner: 'vendor',          icon: '🚚' },
+  pending_approval:       { label: 'Pending Approval',       owner: 'region_manager',  icon: '⏳' },
+  open:                   { label: 'Open',                   owner: 'caseworker',      icon: '📂' },
+};
+
+const ownerColors = {
+  caseworker:     'caseworker',
+  field_staff:    'field_staff',
+  vendor:         'vendor',
+  region_manager: 'region_manager',
+  lab:            'lab',
+};
+
+const roleIcons = {
+  caseworker:     '👤',
+  field_staff:    '🔧',
+  vendor:         '🚚',
+  region_manager: '⭐',
+  lab:            '🧪',
+};
+
+async function init() {
+  // Load staff
+  try {
+    const res = await fetch(`${API}/api/staff`);
+    allStaff = await res.json();
+    const sel = document.getElementById('staff-select');
+    allStaff.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.staff_id;
+      o.textContent = `${s.first_name} ${s.last_name} — ${s.role.replace('_',' ')}`;
+      sel.appendChild(o);
+    });
+  } catch(e) {
+    console.error('Staff load error:', e);
+  }
+
+  // Load activity types
+  try {
+    const res = await fetch(`${API}/api/activity-types`);
+    activityTypes = await res.json();
+  } catch(e) {}
+}
+
+async function loadQueue() {
+  const staffId = document.getElementById('staff-select').value;
+  if (!staffId) return;
+
+  document.getElementById('queue-stats').style.display = 'grid';
+  document.getElementById('queue-list').innerHTML = '<div class="loading">Loading...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/queue/${staffId}`);
+    allQueue = await res.json();
+    renderQueue(allQueue);
+    updateQueueStats(allQueue);
+  } catch(e) {
+    document.getElementById('queue-list').innerHTML = '<div class="empty">Error loading queue</div>';
+  }
+}
+
+function updateQueueStats(data) {
+  document.getElementById('qs-total').textContent = data.length;
+  const high = data.filter(c => c.days_open > 14).length;
+  document.getElementById('qs-high').textContent = high;
+  const programs = [...new Set(data.map(c => c.program_code))].join(', ');
+  document.getElementById('qs-programs').textContent = programs || '—';
+}
+
+function filterQueue() {
+  const prog = document.getElementById('queue-filter').value;
+  const filtered = prog ? allQueue.filter(c => c.program_code === prog) : allQueue;
+  renderQueue(filtered);
+}
+
+function renderQueue(data) {
+  const wrap = document.getElementById('queue-list');
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty">No cases in queue</div>';
+    return;
+  }
+  wrap.innerHTML = data.map(c => {
+    const step = stepLabels[c.status_step] || { label: c.status_step || 'Open', icon: '📂' };
+    const daysColor = c.days_open > 14 ? 'var(--red)' : c.days_open > 7 ? 'var(--yellow)' : 'var(--muted)';
+    return `<div class="queue-item" onclick="loadCase(${c.case_id})">
+      <div class="queue-item-top">
+        <div>
+          <div class="queue-pid">${c.pid}</div>
+          <div class="queue-name">${c.last_name}, ${c.first_name}</div>
+        </div>
+        <div style="text-align:right;">
+          <span style="background:rgba(245,158,11,0.1);color:var(--wq);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">${c.program_code}</span>
+          <div style="font-size:10px;color:${daysColor};margin-top:3px;">${c.days_open}d open</div>
+        </div>
+      </div>
+      <div class="queue-step">${step.icon} ${step.label} · ${c.county_name}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadCase(caseId) {
+  currentCase = null;
+  document.getElementById('case-detail').innerHTML = '<div class="card"><div class="loading">Loading case...</div></div>';
+
+  try {
+    const [caseRes, actRes] = await Promise.all([
+      fetch(`${API}/api/case/${caseId}/status`),
+      fetch(`${API}/api/case/${caseId}/activities`)
+    ]);
+    const caseData = await caseRes.json();
+    const activities = await actRes.json();
+    currentCase = caseData;
+    renderCaseDetail(caseData, activities);
+  } catch(e) {
+    document.getElementById('case-detail').innerHTML = '<div class="card"><div class="empty">Error loading case</div></div>';
+  }
+}
+
+function renderCaseDetail(c, activities) {
+  if (!c) return;
+  const phase = phaseConfig[c.wq_phase] || { label: c.status_secondary || 'Active', icon: '📋', class: '' };
+  const step  = stepLabels[c.status_step] || { label: c.status_step || '—', owner: 'caseworker', icon: '📂' };
+  const ownerRole = step.owner;
+  const ownerLabel = ownerRole?.replace('_', ' ') || 'caseworker';
+
+  // Filter activity types for this program and phase
+  const validTypes = activityTypes.filter(at =>
+    !at.program_code || at.program_code === c.program_code
+  );
+
+  document.getElementById('case-detail').innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="status-banner">
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">
+            Case #${c.case_id} · ${c.program_code} · ${c.pid}
+          </div>
+          <div class="phase">${phase.icon} ${phase.label}</div>
+          <div class="step" style="margin-top:4px;">${step.icon} ${step.label}</div>
+          ${c.status_secondary ? `<div style="margin-top:6px;"><span class="phase-badge phase-${c.wq_phase || 'investigation'}">${c.status_secondary}</span></div>` : ''}
+        </div>
+        <div class="ball-owner">
+          <div class="label">Ball is with</div>
+          <div class="name">${step.icon} ${ownerLabel}</div>
+          <div style="margin-top:6px;">
+            <span class="pill pill-${ownerRole}">${roleIcons[ownerRole] || '👤'} ${ownerLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;">
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Participant</div>
+          <div style="font-size:14px;font-weight:500;">${c.first_name} ${c.last_name}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Program ID</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${c.program_specific_id || '—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Case Status</div>
+          <div style="font-size:13px;">${c.case_status}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Opened</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${formatDate(c.opened_date)}</div></div>
+      </div>
+
+      <!-- LOG ACTIVITY FORM -->
+      <div style="padding:16px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--wq);margin-bottom:12px;">Log Activity</div>
+        <div class="log-form">
+          <div class="form-group">
+            <label class="form-label">Activity Type</label>
+            <select class="input" id="activity-type-select">
+              <option value="">Select activity...</option>
+              ${validTypes.map(at => `<option value="${at.activity_type_id}">${at.activity_name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Next Step (optional)</label>
+            <select class="input" id="next-step-select">
+              <option value="">No change</option>
+              ${Object.entries(stepLabels).map(([k,v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="input" id="activity-notes" placeholder="Describe what was done, any issues, next steps..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="logActivity()">⚡ Log Activity</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY TIMELINE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Activity History</div>
+        <span style="font-size:12px;color:var(--muted);">${activities.length} events</span>
+      </div>
+      <div class="timeline">
+        ${activities.length ? activities.map(a => {
+          const role = a.staff_role || 'unknown';
+          const icon = roleIcons[role] || '👤';
+          return `<div class="timeline-item">
+            <div class="timeline-dot ${role}">${icon}</div>
+            <div class="timeline-content">
+              <div class="timeline-title">${a.activity_name}</div>
+              <div class="timeline-meta">
+                <span>${formatDate(a.activity_date)}</span>
+                <span>·</span>
+                <span class="pill pill-${role}">${a.performed_by_name || 'Unknown'}</span>
+                <span>·</span>
+                <span style="color:var(--muted);font-size:11px;">${a.program_code}</span>
+              </div>
+              ${a.notes ? `<div class="timeline-notes">${a.notes}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('') : '<div class="empty">No activities logged yet</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function logActivity() {
+  if (!currentCase) return;
+  const typeId  = document.getElementById('activity-type-select').value;
+  const notes   = document.getElementById('activity-notes').value.trim();
+  const step    = document.getElementById('next-step-select').value;
+  const staffId = document.getElementById('staff-select').value;
+
+  if (!typeId) { alert('Please select an activity type'); return; }
+
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.textContent = 'Logging...';
+
+  try {
+    // Log activity
+    await fetch(`${API}/api/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        case_id: currentCase.case_id,
+        activity_type_id: typeId,
+        performed_by: staffId || null,
+        notes: notes || null,
+      })
+    });
+
+    // Advance status if selected
+    if (step) {
+      await fetch(`${API}/api/case/${currentCase.case_id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          case_status: currentCase.case_status,
+          status_step: step,
+          staff_id: staffId || null,
+          notes: notes || null,
+        })
+      });
+    }
+
+    showToast('✓ Activity logged');
+    document.getElementById('activity-notes').value = '';
+    document.getElementById('activity-type-select').value = '';
+    document.getElementById('next-step-select').value = '';
+
+    // Reload case
+    await loadCase(currentCase.case_id);
+
+  } catch(e) {
+    alert('Error logging activity: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Log Activity';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+init();
+</script>
+</body>
+</html>
