@@ -405,53 +405,25 @@ app.get('/api/bw/vendors', async (req, res) => {
 });
 
 app.get('/api/bw/participants', async (req, res) => {
-  const { vendor, county } = req.query;
   try {
-    const conditions = ["pr.program_code = 'BW'", "pe.exit_date IS NULL"];
-    const params = [];
-    if (vendor) { params.push(vendor); conditions.push(`v_sub.vendor_id = $${params.length}`); }
-    if (county) { params.push(county); conditions.push(`c.county_name = $${params.length}`); }
-
     const result = await pool.query(`
       SELECT
-        p.pid,
-        p.first_name,
-        p.last_name,
-        pe.program_specific_id,
-        pe.enrollment_id,
-        es.status_name,
-        COALESCE(ps.household_size, 0) AS household_size,
-        a.apn_number,
-        c.county_name,
-        s.structure_type,
-        s.unit_number,
-        (SELECT v.vendor_id
-         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
-         WHERE d.enrollment_id = pe.enrollment_id
-         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_id,
-        (SELECT v.vendor_name
-         FROM delivery d JOIN vendor v ON v.vendor_id = d.vendor_id
-         WHERE d.enrollment_id = pe.enrollment_id
-         ORDER BY d.scheduled_date DESC LIMIT 1) AS vendor_name,
-        (SELECT d.scheduled_date
-         FROM delivery d
+        p.pid, p.first_name, p.last_name,
+        pe.program_specific_id, pe.enrollment_id,
+        es.status_name, ps.household_size,
+        a.apn_number, c.county_name,
+        s.structure_type, s.unit_number,
+        v.vendor_id, v.vendor_name,
+        (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_delivery,
-        (SELECT d.delivery_status
-         FROM delivery d
+        (SELECT d.delivery_status FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
          ORDER BY d.scheduled_date DESC LIMIT 1) AS last_status,
-        (SELECT d.scheduled_date
-         FROM delivery d
+        (SELECT d.scheduled_date FROM delivery d
          WHERE d.enrollment_id = pe.enrollment_id
-           AND d.scheduled_date >= CURRENT_DATE
-         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery,
-        CASE
-          WHEN COALESCE(ps.household_size,0) <= 2 THEN 20
-          WHEN COALESCE(ps.household_size,0) <= 4 THEN 40
-          WHEN COALESCE(ps.household_size,0) <= 6 THEN 50
-          ELSE 60
-        END AS allotment_gallons
+         AND d.scheduled_date >= CURRENT_DATE
+         ORDER BY d.scheduled_date ASC LIMIT 1) AS next_delivery
       FROM program_enrollment pe
       JOIN program pr ON pr.program_id = pe.program_id
       JOIN person p ON p.pid = pe.pid
@@ -459,14 +431,19 @@ app.get('/api/bw/participants', async (req, res) => {
       JOIN structure s ON s.structure_id = pe.structure_id
       JOIN apn a ON a.apn_id = s.apn_id
       JOIN county c ON c.county_id = a.county_id
-      LEFT JOIN person_structure ps
-        ON ps.pid = p.pid AND ps.end_date IS NULL
+      LEFT JOIN delivery d2 ON d2.enrollment_id = pe.enrollment_id
+      LEFT JOIN vendor v ON v.vendor_id = d2.vendor_id
       WHERE pr.program_code = 'BW' AND pe.exit_date IS NULL
+      GROUP BY p.pid, p.first_name, p.last_name, pe.program_specific_id,
+               pe.enrollment_id, es.status_name, ps.household_size,
+               a.apn_number, c.county_name, s.structure_type, s.unit_number,
+               v.vendor_id, v.vendor_name
       ORDER BY p.last_name, p.first_name
     `);
     res.json(result.rows);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/bw/deliveries', async (req, res) => {
   const { year, month } = req.query;
   try {
@@ -696,22 +673,39 @@ app.get('/api/wq/stats', async (req, res) => {
 app.get('/api/wq/participants', async (req, res) => {
   try {
     const r = await pool.query(`
-      SELECT DISTINCT p.pid, p.first_name, p.last_name,
-             a.apn_number, c.county_name,
-             spt.point_type_name, wqr.contaminant, wqr.value, wqr.unit,
-             wqr.mcl_value, wqr.exceeds_mcl_flag,
-             e.equipment_type
+      SELECT DISTINCT
+        p.pid, p.first_name, p.last_name,
+        a.apn_number, c.county_name,
+        pe.program_specific_id,
+        pe.wq_phase,
+        pe.status_secondary,
+        pe.status_step,
+        es.status_name,
+        cr.case_id,
+        cr.opened_date,
+        st.first_name || ' ' || st.last_name AS caseworker_name,
+        spt.point_type_name,
+        wqr.contaminant,
+        wqr.value,
+        wqr.unit,
+        wqr.mcl_value,
+        wqr.exceeds_mcl_flag,
+        wqr.sample_date,
+        e.equipment_type
       FROM program_enrollment pe
-      JOIN program pr ON pr.program_id=pe.program_id
-      JOIN person p ON p.pid=pe.pid
-      JOIN structure s ON s.structure_id=pe.structure_id
-      JOIN apn a ON a.apn_id=s.apn_id
-      JOIN county c ON c.county_id=a.county_id
-      LEFT JOIN sample_point sp ON sp.structure_id=s.structure_id
-      LEFT JOIN sample_point_type spt ON spt.point_type_id=sp.point_type_id
-      LEFT JOIN water_quality_result wqr ON wqr.sample_point_id=sp.sample_point_id
-      LEFT JOIN equipment e ON e.sample_point_id=sp.sample_point_id
-      WHERE pr.program_code='WQ' AND pe.exit_date IS NULL
+      JOIN program pr ON pr.program_id = pe.program_id
+      JOIN person p ON p.pid = pe.pid
+      JOIN enrollment_status es ON es.status_id = pe.status_id
+      JOIN structure s ON s.structure_id = pe.structure_id
+      JOIN apn a ON a.apn_id = s.apn_id
+      JOIN county c ON c.county_id = a.county_id
+      LEFT JOIN case_record cr ON cr.enrollment_id = pe.enrollment_id
+      LEFT JOIN staff st ON st.staff_id = cr.assigned_staff_id
+      LEFT JOIN sample_point sp ON sp.structure_id = s.structure_id
+      LEFT JOIN sample_point_type spt ON spt.point_type_id = sp.point_type_id
+      LEFT JOIN water_quality_result wqr ON wqr.sample_point_id = sp.sample_point_id
+      LEFT JOIN equipment e ON e.sample_point_id = sp.sample_point_id
+      WHERE pr.program_code = 'WQ' AND pe.exit_date IS NULL
       ORDER BY wqr.exceeds_mcl_flag DESC NULLS LAST, p.last_name
     `);
     res.json(r.rows);

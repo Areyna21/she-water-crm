@@ -256,27 +256,65 @@
     renderParticipants(f);
   }
 
+  const phaseColors = {
+    investigation:   'rgba(59,130,246,0.15)',
+    mitigation:      'rgba(239,68,68,0.15)',
+    maintenance:     'rgba(34,197,94,0.15)',
+    closeout:        'rgba(100,116,139,0.2)',
+    post_mitigation: 'rgba(167,139,250,0.15)',
+  };
+  const phaseText = {
+    investigation:   '#60a5fa',
+    mitigation:      'var(--red)',
+    maintenance:     'var(--green)',
+    closeout:        'var(--muted)',
+    post_mitigation: 'var(--purple)',
+  };
+  const stepOwner = {
+    field_visit_scheduled:  { label: 'Field Staff',    icon: '🔧' },
+    awaiting_lab_results:   { label: 'Lab',            icon: '🧪' },
+    results_received:       { label: 'Caseworker',     icon: '👤' },
+    closeout_scheduled:     { label: 'Caseworker',     icon: '👤' },
+    maintenance_monitoring: { label: 'Caseworker',     icon: '👤' },
+    vendor_scheduled:       { label: 'Vendor',         icon: '🚚' },
+    pending_approval:       { label: 'Region Manager', icon: '⭐' },
+  };
+
   function renderParticipants(data) {
     const wrap = document.getElementById('participant-table');
     if (!data.length) { wrap.innerHTML = '<div class="empty">No participants found</div>'; return; }
-    wrap.innerHTML = `<table>
-      <thead><tr><th>PID</th><th>Name</th><th>County</th><th>APN</th><th>Point Type</th><th>Contaminant</th><th>Value</th><th>MCL</th><th>Status</th><th>Equipment</th></tr></thead>
-      <tbody>${data.map(p => {
-        const exceeds = p.exceeds_mcl_flag;
-        return `<tr class="clickable">
-          <td class="pid-cell">${p.pid}</td>
-          <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div></td>
-          <td style="font-size:12px;">${p.county_name||'—'}</td>
-          <td class="mono">${p.apn_number||'—'}</td>
-          <td><span class="pill pill-${p.point_type_name}">${p.point_type_name||'—'}</span></td>
-          <td style="font-size:12px;">${p.contaminant||'—'}</td>
-          <td class="mono ${exceeds ? 'mcl-exceeded' : 'mcl-pass'}">${p.value != null ? p.value + ' ' + (p.unit||'') : '—'}</td>
-          <td class="mono" style="color:var(--muted);">${p.mcl_value != null ? p.mcl_value + ' ' + (p.unit||'') : '—'}</td>
-          <td><span class="pill ${exceeds ? 'pill-exceeded' : 'pill-pass'}">${exceeds ? '⚠ Exceeds MCL' : '✓ Passes'}</span></td>
-          <td style="font-size:12px;">${p.equipment_type || '—'}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
+    wrap.innerHTML = '<table><thead><tr>' +
+      '<th>PID</th><th>Name</th><th>County</th><th>Phase</th>' +
+      '<th>Status Step</th><th>Ball With</th><th>Contaminant</th>' +
+      '<th>Value</th><th>MCL</th><th>Result</th><th>Equipment</th><th>Caseworker</th>' +
+      '</tr></thead><tbody>' +
+      data.map(p => {
+        const exceeds  = p.exceeds_mcl_flag;
+        const phase    = p.wq_phase || 'investigation';
+        const step     = p.status_step || 'open';
+        const owner    = stepOwner[step] || { label: 'Caseworker', icon: '👤' };
+        const bgColor  = phaseColors[phase] || 'rgba(100,116,139,0.1)';
+        const txtColor = phaseText[phase]   || 'var(--muted)';
+        return '<tr class="clickable">' +
+          '<td class="pid-cell">' + p.pid + '</td>' +
+          '<td><div style="font-weight:500;">' + p.last_name + ', ' + p.first_name + '</div>' +
+            '<div style="font-size:11px;color:var(--muted);">' + (p.program_specific_id||'') + '</div></td>' +
+          '<td style="font-size:12px;">' + (p.county_name||'—') + '</td>' +
+          '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:' + bgColor + ';color:' + txtColor + ';">' +
+            phase.replace('_',' ') + '</span></td>' +
+          '<td style="font-size:11px;color:var(--muted);">' + (p.status_secondary||'—') + '</td>' +
+          '<td style="font-size:12px;">' + owner.icon + ' ' + owner.label + '</td>' +
+          '<td style="font-size:12px;">' + (p.contaminant||'—') + '</td>' +
+          '<td class="mono ' + (exceeds ? 'mcl-exceeded' : p.value != null ? 'mcl-pass' : '') + '">' +
+            (p.value != null ? p.value + ' ' + (p.unit||'') : '—') + '</td>' +
+          '<td class="mono" style="color:var(--muted);">' +
+            (p.mcl_value != null ? p.mcl_value + ' ' + (p.unit||'') : '—') + '</td>' +
+          '<td><span class="pill ' + (exceeds ? 'pill-exceeded' : p.value != null ? 'pill-pass' : 'pill-inactive') + '">' +
+            (exceeds ? '⚠ Exceeds' : p.value != null ? '✓ Pass' : 'Pending') + '</span></td>' +
+          '<td style="font-size:12px;">' + (p.equipment_type||'—') + '</td>' +
+          '<td style="font-size:11px;color:var(--muted);">' + (p.caseworker_name||'—') + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
   }
 
   async function loadResults() {
