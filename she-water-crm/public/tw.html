@@ -241,7 +241,7 @@
     if (!data.length) { wrap.innerHTML = '<div class="empty">No participants found</div>'; return; }
     wrap.innerHTML = `<table>
       <thead><tr><th>PID</th><th>Name</th><th>County</th><th>APN</th><th>Household</th><th>Tank</th><th>Hauler</th><th>Last Fill</th><th>Status</th></tr></thead>
-      <tbody>${data.map(p => `<tr class="clickable" onclick="openProfile('${p.pid}')" >
+      <tbody>${data.map(p => `<tr class="clickable" onclick="openProfile('${p.pid}')">
         <td class="pid-cell">${p.pid}</td>
         <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div></td>
         <td style="font-size:12px;">${p.county_name||'—'}</td>
@@ -357,16 +357,6 @@
     </table>`;
   }
 
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
   function formatDate(d) { if(!d) return null; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 
   // Set default date range to current month

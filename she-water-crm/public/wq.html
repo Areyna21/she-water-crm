@@ -244,16 +244,6 @@
     } catch(e) { document.getElementById('participant-table').innerHTML = '<div class="empty">Error</div>'; }
   }
 
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
   function filterParticipants() {
     const q = document.getElementById('p-search').value.toLowerCase();
     const county = document.getElementById('p-county').value;
@@ -339,7 +329,7 @@
       if (!data.length) { wrap.innerHTML = '<div class="empty">No results found</div>'; return; }
       wrap.innerHTML = `<table>
         <thead><tr><th>Sample Date</th><th>PID</th><th>Name</th><th>County</th><th>Point Type</th><th>Contaminant</th><th>Value</th><th>MCL</th><th>Result</th><th>Lab</th></tr></thead>
-        <tbody>${data.map(r => `<tr class="clickable" onclick="openProfile('${r.pid}')">
+        <tbody>${data.map(r => `<tr>
           <td class="mono">${formatDate(r.sample_date)}</td>
           <td class="pid-cell">${r.pid||'—'}</td>
           <td style="font-size:13px;">${r.last_name||'—'}, ${r.first_name||''}</td>
@@ -387,7 +377,7 @@
           return `<tr>
             <td><span class="pill pill-${e.equipment_type}">${e.equipment_type}</span></td>
             <td style="font-size:12px;">${e.make||''} ${e.model||''}</td>
-            <td class="pid-cell" onclick="openProfile('${e.pid}')" style="cursor:pointer;">${e.pid||'—'}</td>
+            <td class="pid-cell">${e.pid||'—'}</td>
             <td style="font-size:12px;">${e.county_name||'—'}</td>
             <td class="mono">${formatDate(e.install_date)||'—'}</td>
             <td class="mono">${formatDate(e.last_service_date)||'—'}</td>

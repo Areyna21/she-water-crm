@@ -290,7 +290,7 @@
     const renderCard = (c) => `
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span class="pid-cell" onclick="openProfile('${c.pid}')" style="cursor:pointer;">${c.pid}</span>
+          <span class="pid-cell">${c.pid}</span>
           <span style="font-size:11px;color:var(--muted);">#${c.case_id}</span>
         </div>
         <div style="font-size:13px;font-weight:500;">${c.last_name}, ${c.first_name}</div>
@@ -370,7 +370,7 @@
         <thead><tr><th>Case #</th><th>PID</th><th>Name</th><th>County</th><th>Submitted</th><th>Submitted By</th><th>Decision</th><th>Notes</th></tr></thead>
         <tbody>${data.map(a => `<tr>
           <td class="mono">#${a.case_id}</td>
-          <td class="pid-cell" onclick="openProfile('${a.pid}')" style="cursor:pointer;">${a.pid||'—'}</td>
+          <td class="pid-cell">${a.pid||'—'}</td>
           <td style="font-weight:500;">${a.last_name||'—'}, ${a.first_name||''}</td>
           <td style="font-size:12px;">${a.county_name||'—'}</td>
           <td class="mono">${formatDate(a.submitted_date)}</td>
@@ -382,16 +382,6 @@
     } catch(e) {}
   }
 
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
-
-  function openProfile(pid) {
-    if (!pid || pid === '—') return;
-    window.open('http://localhost:3001/?pid=' + pid, '_blank');
-  }
   function formatDate(d) { if(!d) return null; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 
   init();
