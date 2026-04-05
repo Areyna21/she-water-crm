@@ -250,7 +250,7 @@ function renderQueue(data) {
     return `<div class="queue-item" onclick="loadCase(${c.case_id})">
       <div class="queue-item-top">
         <div>
-          <div class="queue-pid">${c.pid}</div>
+          <div class="queue-pid" onclick="event.stopPropagation(); openProfile('${c.pid}')" style="cursor:pointer;text-decoration:underline;">${c.pid}</div>
           <div class="queue-name">${c.last_name}, ${c.first_name}</div>
         </div>
         <div style="text-align:right;">

@@ -850,7 +850,7 @@
         </tr></thead>
         <tbody>
           ${data.map(p => `
-            <tr class="clickable">
+            <tr class="clickable" onclick="openProfile('${p.pid}')">
               <td class="pid-cell">${p.pid}</td>
               <td><div style="font-weight:500;">${p.last_name}, ${p.first_name}</div>
                   <div style="font-size:11px;color:var(--muted);">${p.apn_number || '—'}</div></td>
@@ -987,7 +987,7 @@
         <tbody>
           ${events.map(e => `
             <tr>
-              <td class="pid-cell">${e.pid || '—'}</td>
+              <td class="pid-cell" onclick="openProfile('${e.pid}')" style="cursor:pointer;">${e.pid || '—'}</td>
               <td>${e.last_name || '—'}, ${e.first_name || ''}</td>
               <td style="font-size:12px;">${e.county_name || '—'}</td>
               <td style="font-size:12px;">${e.vendor_name || '—'}</td>
@@ -1048,7 +1048,7 @@
           ${data.map(d => `
             <tr>
               <td class="mono">${formatDate(d.scheduled_date)}</td>
-              <td class="pid-cell">${d.pid || '—'}</td>
+              <td class="pid-cell" onclick="openProfile('${d.pid}')" style="cursor:pointer;">${d.pid || '—'}</td>
               <td style="font-size:13px;">${d.last_name || '—'}, ${d.first_name || ''}</td>
               <td style="font-size:12px;">${d.county_name || '—'}</td>
               <td style="font-size:12px;">${d.vendor_name || '—'}</td>
@@ -1314,6 +1314,16 @@ Water Assistance Programs
   }
 
   // ── HELPERS ──────────────────────────────────────────────
+
+  function openProfile(pid) {
+    if (!pid || pid === '—') return;
+    window.open('http://localhost:3001/?pid=' + pid, '_blank');
+  }
+
+  function openProfile(pid) {
+    if (!pid || pid === '—') return;
+    window.open('http://localhost:3001/?pid=' + pid, '_blank');
+  }
   function formatDate(d) {
     if (!d) return null;
     return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
